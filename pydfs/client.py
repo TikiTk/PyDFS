@@ -14,10 +14,10 @@ def send_to_storage(block_uuid, data, minions):
     minion.put(block_uuid, data, minions)
 
 
-def read_from_minion(block_uuid, minion):
+def read_from_storage(block_uuid, minion):
     host, port = minion
     con = rpyc.connect(host, port=port)
-    minion = con.root.Minion()
+    minion = con.root.Storage()
     return minion.get(block_uuid)
 
 
@@ -26,10 +26,10 @@ def get(master, fname):
     if not file_table:
         print "404: file not found"
         return
-
+    print(file_table[0])
     for block in file_table:
-        for m in [master.get_minions()[_] for _ in block[1]]:
-            data = read_from_minion(block[0], m)
+        for m in [master.get_storageservers()[_] for _ in block[1]]:
+            data = read_from_storage(block[0], m)
             if data:
                 sys.stdout.write(data)
                 break
