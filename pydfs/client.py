@@ -23,8 +23,9 @@ def read_from_storage(block_uuid, minion):
     return minion.get(block_uuid)
 
 
-def put(master, source, dest):
+def put(master, source):
     size = os.path.getsize(source)
+    dest = source
     blocks = master.write(dest, size)
     with open(source) as f:
         for b in blocks:
@@ -47,13 +48,10 @@ def read_file(file_table, master):
 def main(args):
     con = rpyc.connect("localhost", port=2131)
     master = con.root.Nameserver()
-
-
-
     if args[0] == "get":
         nameserver.get(master, args[1])
     elif args[0] == "put":
-        put(master, args[1], args[2])
+        put(master, args[1])
     else:
         print "try 'put srcFile destFile OR get file'"
 
