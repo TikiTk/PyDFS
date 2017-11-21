@@ -8,7 +8,7 @@ import sys
 import uuid
 
 import rpyc
-from pydfs.client import read_file
+import client
 from rpyc.utils.server import ThreadedServer
 
 
@@ -38,7 +38,7 @@ def get(master, fname):
         print "404: file not found"
         return
 
-    read_file(file_table, master)
+    client.read_file(file_table, master)
 
 
 class Nameserver(rpyc.Service):
