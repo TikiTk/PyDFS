@@ -1,10 +1,11 @@
 import rpyc
 import uuid
 import os
+from pathlib2 import Path
 
 from rpyc.utils.server import ThreadedServer
 
-DATA_DIR = "/tmp/minion/"
+DATA_DIR = "/tmp/storage/"
 
 
 class StorageService(rpyc.Service):
@@ -21,6 +22,9 @@ class StorageService(rpyc.Service):
             block_addr = DATA_DIR + str(block_uuid)
             if not os.path.isfile(block_addr):
                 return None
+
+            #print Path(block_addr)
+
             with open(block_addr) as f:
                 return f.read()
 
@@ -32,7 +36,7 @@ class StorageService(rpyc.Service):
             host, port = minion
 
             con = rpyc.connect(host, port=port)
-            minion = con.root.Minion()
+            minion = con.root.Storage()
             minion.put(block_uuid, data, minions)
 
         def delete_block(self, uuid):

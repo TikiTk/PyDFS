@@ -1,6 +1,8 @@
-import rpyc
-import sys
 import os
+import sys
+
+import rpyc
+import nameserver
 
 
 def send_to_storage(block_uuid, data, minions):
@@ -21,22 +23,6 @@ def read_from_storage(block_uuid, minion):
     return minion.get(block_uuid)
 
 
-def get(master, fname):
-    file_table = master.get_file_table_entry(fname)
-    if not file_table:
-        print "404: file not found"
-        return
-    print(file_table[0])
-    for block in file_table:
-        for m in [master.get_storageservers()[_] for _ in block[1]]:
-            data = read_from_storage(block[0], m)
-            if data:
-                sys.stdout.write(data)
-                break
-        else:
-            print "No blocks found. Possibly a corrupt file"
-
-
 def put(master, source, dest):
     size = os.path.getsize(source)
     blocks = master.write(dest, size)
@@ -55,7 +41,7 @@ def main(args):
 
 
     if args[0] == "get":
-        get(master, args[1])
+        nameserver.get(master, args[1])
     elif args[0] == "put":
         put(master, args[1], args[2])
     else:

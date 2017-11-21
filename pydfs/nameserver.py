@@ -9,7 +9,10 @@ import pickle
 import sys
 import os
 
+
 from rpyc.utils.server import ThreadedServer
+
+import client
 
 
 def int_handler(signal, frame):
@@ -31,6 +34,22 @@ def set_conf():
     if os.path.isfile('fs.img'):
         Nameserver.exposed_Nameserver.file_table, Nameserver.exposed_Nameserver.block_mapping = pickle.load(
             open('fs.img', 'rb'))
+
+def get(master, fname):
+    file_table = master.get_file_table_entry(fname)
+    if not file_table:
+        print "404: file not found"
+        return
+
+
+    for block in file_table:
+        for m in [master.get_storageservers()[_] for _ in block[1]]:
+            data = client.read_from_storage(block[0], m)
+            if data:
+                sys.stdout.write(data)
+                break
+        else:
+            print "No blocks found. Possibly a corrupt file"
 
 
 class Nameserver(rpyc.Service):
@@ -84,6 +103,8 @@ class Nameserver(rpyc.Service):
                 self.__class__.file_table[dest].append((block_uuid, nodes_ids))
 
             return blocks
+
+
 
 
 if __name__ == "__main__":
