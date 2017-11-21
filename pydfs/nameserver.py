@@ -1,18 +1,15 @@
-import rpyc
-import uuid
-import threading
-import math
-import random
 import ConfigParser
-import signal
-import pickle
-import sys
+import math
 import os
+import pickle
+import random
+import signal
+import sys
+import uuid
 
-
+import rpyc
+from pydfs.client import read_file
 from rpyc.utils.server import ThreadedServer
-
-import client
 
 
 def int_handler(signal, frame):
@@ -41,15 +38,7 @@ def get(master, fname):
         print "404: file not found"
         return
 
-
-    for block in file_table:
-        for m in [master.get_storageservers()[_] for _ in block[1]]:
-            data = client.read_from_storage(block[0], m)
-            if data:
-                sys.stdout.write(data)
-                break
-        else:
-            print "No blocks found. Possibly a corrupt file"
+    read_file(file_table, master)
 
 
 class Nameserver(rpyc.Service):

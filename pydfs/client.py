@@ -34,6 +34,16 @@ def put(master, source, dest):
             send_to_storage(block_uuid, data, minions)
 
 
+def read_file(file_table, master):
+    for block in file_table:
+        for m in [master.get_storageservers()[_] for _ in block[1]]:
+            data = read_from_storage(block[0], m)
+            if data:
+                sys.stdout.write(data)
+                break
+        else:
+            print "No blocks found. Possibly a corrupt file"
+
 def main(args):
     con = rpyc.connect("localhost", port=2131)
     master = con.root.Nameserver()
@@ -50,3 +60,5 @@ def main(args):
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+
+
