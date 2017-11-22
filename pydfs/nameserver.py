@@ -32,13 +32,6 @@ def set_conf():
         Nameserver.exposed_Nameserver.file_table, Nameserver.exposed_Nameserver.block_mapping = pickle.load(
             open('fs.img', 'rb'))
 
-def get(master, fname):
-    file_table = master.get_file_table_entry(fname)
-    if not file_table:
-        print "404: file not found"
-        return
-
-    client.read_file(file_table, master)
 
 
 class Nameserver(rpyc.Service):
@@ -49,6 +42,10 @@ class Nameserver(rpyc.Service):
 
         block_size = 0
         replication_factor = 0
+
+        def exposed_list_files(self):
+            files = self.__class__.file_table.keys()
+            return files
 
         def exposed_read(self, fname):
             mapping = self.__class__.file_table[fname]

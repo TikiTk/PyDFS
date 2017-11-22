@@ -23,9 +23,8 @@ def read_from_storage(block_uuid, minion):
     return minion.get(block_uuid)
 
 
-def put(master, source):
-    size = os.path.getsize(source)
-    dest = source
+def put(master, source, dest):
+    size = os.path.getsize(source)    
     blocks = master.write(dest, size)
     with open(source) as f:
         for b in blocks:
@@ -35,28 +34,99 @@ def put(master, source):
             send_to_storage(block_uuid, data, minions)
 
 
-def read_file(file_table, master):
+def get(master,fname, mode):
+    file_table = master.get_file_table_entry(fname)
+    if not file_table:
+        print "404: file not found"
+        return
+
+    flag = 0
+    download_dir = os.getcwd() + '/files'
     for block in file_table:
         for m in [master.get_storageservers()[_] for _ in block[1]]:
             data = read_from_storage(block[0], m)
             if data:
-                sys.stdout.write(data)
+                if mode == 'download':
+                    if not os.path.isdir(download_dir): os.mkdir(download_dir)
+                    if flag:
+
+                        with open(download_dir + '/' + fname, 'a') as f:
+                            f.write(data)
+                    else:
+                        with open(download_dir + '/' + fname, 'w') as f:
+                            f.write(data)
+                            flag = 1
+                elif mode == 'open':
+                    sys.stdout.write(data)
                 break
+            
         else:
             print "No blocks found. Possibly a corrupt file"
-
-def main(args):
+    print "Done"
+def main():
     con = rpyc.connect("localhost", port=2131)
     master = con.root.Nameserver()
-    if args[0] == "get":
-        nameserver.get(master, args[1])
-    elif args[0] == "put":
-        put(master, args[1])
-    else:
-        print "try 'put srcFile destFile OR get file'"
+
+    
+    print "Client started. Use 'help' to list all available commands."
+
+    cmd = sys.stdin.readline()
+    parts = cmd.split(' ')
+    args = []
+    for part in parts:
+        args.append(part.strip())
+        
+    while args[0] != 'exit':
+        if args[0] == 'get':
+            if len(args) > 1:
+                get(master, args[1], 'download')
+            else:
+                print "Filename is not specified. Usage: get <filename>"
+        elif args[0] == 'cat':
+            if len(args) > 1:
+                get(master, args[1], 'open')
+            else:
+                print "Filename is not specified. Usage: cat <filename>"
+        elif args[0] == 'put':
+            if len(args) > 1:
+                if len(args) == 3:
+                    put(master, args[1], args[2])
+                elif len(args) == 2:
+                    fname = os.path.basename(args[1])
+                    put(master, args[1], fname)
+                else:
+                    print "Too many arguments"
+            else:
+                print "File is not specified. Usage: put <file> [new filename]"    
+        elif args[0] == 'ls':
+            for f in master.list_files():
+                print f
+        elif args[0] == 'mkdir':
+            pass
+        elif args[0] == 'cd':
+            pass    
+        elif args[0] == 'del':
+            pass 
+        elif args[0] == 'help':
+            print "Commands:"
+            print "  ls - see the list of files and directories;"
+            print "  mkdir - create a new directory. Usage: mkdir <dirname>"
+            print "  cd - open a directory. Usage: mkdir <dirname>"
+            print "  del - delete a file or directory. Usage: del <dirname>/<filename>"
+            print "  put - write a file in the current directory. Usage: put <filename> [new filename]"
+            print "  get - download a file. Usage: get <filename>"
+            print "  cat - open a file. Usage: cat <filename>"
+            print "  exit - stop the client"       
+        else:
+            print "Wrong input. Try again (use 'help' to get list of all available commands)"
+        cmd = sys.stdin.readline()
+        parts = cmd.split(' ')
+        args = []
+        for part in parts:
+            args.append(part.strip())
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
 
 
