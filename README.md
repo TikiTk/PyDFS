@@ -1,5 +1,5 @@
 # PyDFS
-Simple (~200 lines) distributed file system like HDFS (and of-course GFS). It consists of one Master (NameNode) and multiple Minions (DataNode). And a client for interation. It will dump metadata/namespace when given SIGINT and reload it when fired up next time. Replicate data  the way HDFS does. It will send data to one minion and that minion will send it to next one and so on. Reading done in similar manner. Will contact fitst minion for block, if fails then second and so on.  Uses RPyC for RPC.
+Simple distributed file system like HDFS (and of-course GFS). It consists of one Nameserver (NameNode) and multiple Storageservers (DataNode). And a client for interation. It will dump metadata/namespace when given SIGINT and reload it when fired up next time. Replicate data  the way HDFS does. It will send data to one storageserver and that storageserver will send it to next one and so on. Reading done in similar manner. Will contact fitst storageserver for block, if fails then second and so on.  Uses RPyC for RPC.
 
 #### [Blog: Simple Distributed File System in Python : PyDFS](https://superuser.blog/distributed-file-system-python/) 
 
@@ -7,13 +7,10 @@ Simple (~200 lines) distributed file system like HDFS (and of-course GFS). It co
   - rpyc (Really! That's it.)
   
 ### How to run.
-  1. Edit `dfs.conf` for setting block size, replication factor and list minions (`minionid:host:port`)
-  2. Fireup master and minions.
-  3. To store and retrive a file:
-```sh
-$ python client.py put sourcefile.txt sometxt
-$ python client.py get sometxt
-```
+  1. Edit `dfs.conf` for setting block size, replication factor and list storageservers (`id:host:port`)
+  2. Fireup `nameserver.py` and `storage.py`.
+  3. Start `client.py`, type 'help' to see command list.
+
 ##### Stop it using Ctll + C so that it will dump the namespace.
 
 ## TODO:
