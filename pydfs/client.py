@@ -93,9 +93,7 @@ def delete(master,fname):
             delete_from_storage(block[0], m)
     master.del_file(fname)
 
-def main():
-    con = rpyc.connect("localhost", port=2131)
-    master = con.root
+
 
 def get_keyboard_input(cur_dir):
     sys.stdout.write(bcolors.BOLD + bcolors.GREEN + cur_dir);
@@ -109,7 +107,7 @@ def get_keyboard_input(cur_dir):
     return args
 
 def main():
-    con = rpyc.connect("localhost", port=2131)
+    con = rpyc.connect("192.168.0.91", port=2131)
     master = con.root
 
     cur_dir = "~/"
