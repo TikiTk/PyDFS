@@ -1,9 +1,22 @@
 import os
 import sys
 
+from termcolor import colored
+from colorama import Fore, Back, init, Style
+
 import rpyc
 import nameserver
 
+init(autoreset=True)
+class bcolors:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 def send_to_storage(block_uuid, data, minions):
     print "sending: " + str(block_uuid) + str(minions)
@@ -39,7 +52,7 @@ def get(master,fname, mode):
     if not file_table:
         print "404: file not found"
         return
-
+    print file_table
     flag = 0
     download_dir = os.getcwd() + '/files'
     for block in file_table:
@@ -63,18 +76,24 @@ def get(master,fname, mode):
         else:
             print "No blocks found. Possibly a corrupt file"
     print "Done"
-def main():
-    con = rpyc.connect("localhost", port=2131)
-    master = con.root.Nameserver()
 
-    
-    print "Client started. Use 'help' to list all available commands."
+def get_keyboard_input(cur_dir):
+    sys.stdout.write(bcolors.BOLD + bcolors.GREEN + cur_dir); sys.stdout.flush()
 
     cmd = sys.stdin.readline()
     parts = cmd.split(' ')
     args = []
     for part in parts:
         args.append(part.strip())
+    return args
+
+def main():
+    con = rpyc.connect("localhost", port=2131)
+    master = con.root.Nameserver()
+
+    cur_dir = "~/"
+    print "Client started. Use 'help' to list all available commands."
+    args = get_keyboard_input(cur_dir)
         
     while args[0] != 'exit':
         if args[0] == 'get':
@@ -100,7 +119,8 @@ def main():
                 print "File is not specified. Usage: put <file> [new filename]"    
         elif args[0] == 'ls':
             for f in master.list_files():
-                print f
+
+                print Fore.YELLOW + f
         elif args[0] == 'mkdir':
             if len(args) > 1:
                 dirname = args[1]
@@ -125,14 +145,10 @@ def main():
             print "  put - write a file in the current directory. Usage: put <filename> [new filename]"
             print "  get - download a file. Usage: get <filename>"
             print "  cat - open a file. Usage: cat <filename>"
-            print "  exit - stop the client"       
+            print "  exit - stop the client"            
         else:
             print "Wrong input. Try again (use 'help' to get list of all available commands)"
-        cmd = sys.stdin.readline()
-        parts = cmd.split(' ')
-        args = []
-        for part in parts:
-            args.append(part.strip())
+        args = get_keyboard_input(cur_dir)
 
 
 if __name__ == "__main__":
