@@ -4,7 +4,6 @@ import sys
 import rpyc
 
 
-
 def send_to_storage(block_uuid, data, minions):
     print "sending: " + str(block_uuid) + str(minions)
     minion = minions[0]
@@ -32,7 +31,6 @@ def put(master, source, dest):
             block_uuid = b[0]
             minions = [master.get_storageservers()[_] for _ in b[1]]
             send_to_storage(block_uuid, data, minions)
-
 
 
 def get(master, fname, mode):
@@ -70,7 +68,6 @@ def main():
     con = rpyc.connect("localhost", port=2131)
     master = con.root
 
-    
     print "Client started. Use 'help' to list all available commands."
 
     cmd = sys.stdin.readline()
@@ -78,7 +75,7 @@ def main():
     args = []
     for part in parts:
         args.append(part.strip())
-        
+
     while args[0] != 'exit':
         if args[0] == 'get':
             if len(args) > 1:
@@ -100,7 +97,7 @@ def main():
                 else:
                     print "Too many arguments"
             else:
-                print "File is not specified. Usage: put <file> [new filename]"    
+                print "File is not specified. Usage: put <file> [new filename]"
         elif args[0] == 'ls':
             for f in master.list_files():
                 print f
@@ -131,7 +128,7 @@ def main():
             print "  put - write a file in the current directory. Usage: put <filename> [new filename]"
             print "  get - download a file. Usage: get <filename>"
             print "  cat - open a file. Usage: cat <filename>"
-            print "  exit - stop the client"       
+            print "  exit - stop the client"
         else:
             print "Wrong input. Try again (use 'help' to get list of all available commands)"
         cmd = sys.stdin.readline()

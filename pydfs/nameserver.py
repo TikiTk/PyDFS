@@ -59,8 +59,8 @@ class Nameserver(rpyc.Service):
 
     def exposed_write(self, dest, size):
         if self.exists(dest):
-            #print "File already exists"
-            #return
+            # print "File already exists"
+            # return
             pass
         self.check_connection_to_storageservers(self.minions)
         self.__class__.file_table[dest] = []

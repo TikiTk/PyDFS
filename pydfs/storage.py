@@ -31,6 +31,7 @@ def setup(host, ip, master):
         print "New storage server added " + str(host) + " : " + str(ip)
         return
 
+
 class StorageService(rpyc.Service):
     @property
     def get_current_directory(self):
