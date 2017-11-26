@@ -42,6 +42,7 @@ class Nameserver(rpyc.Service):
     working_directory = StorageService.get_current_directory
     block_size = 0
     replication_factor = 0
+    file_sizes = {}
 
     def exposed_get_replication_factor(self):
         return self.replication_factor
@@ -70,6 +71,7 @@ class Nameserver(rpyc.Service):
             pass
         self.check_connection_to_storageservers(self.minions)
         self.__class__.file_table[dest] = []
+        self.__class__.file_sizes[dest] = size
 
         num_blocks = self.calc_num_blocks(size)
         blocks = self.alloc_blocks(dest, num_blocks)
@@ -80,6 +82,13 @@ class Nameserver(rpyc.Service):
             return self.__class__.file_table[fname]
         else:
             return None
+
+    def exposed_get_file_size(self, fname):
+        if fname in self.__class__.file_sizes:
+            return self.__class__.file_sizes[fname]
+        else:
+            return None
+
 
     def exposed_get_block_size(self):
         return self.__class__.block_size

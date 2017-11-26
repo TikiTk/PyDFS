@@ -122,8 +122,8 @@ def main():
                 print "File is not specified. Usage: put <file> [new filename]"    
         elif args[0] == 'ls':
             for f in master.list_files():
-
-                print Fore.YELLOW + f
+                s = master.get_file_size(f)
+                print Fore.YELLOW + f + ' ' + str(s)
         elif args[0] == 'mkdir':
             if len(args) > 1:
                 directoryname = args[1]
