@@ -63,7 +63,7 @@ def get(master,fname, mode):
         for i in range(len(block[1])):
             if block[1][i] in master.get_list_of_minions():
                 for m in master.get_list_of_minions():
-                    data = read_from_storage(block[0], m)
+                    data = read_from_storage(block[0], master.get_list_of_minions()[m])
                     if data:
                         if mode == 'download':
                             if not os.path.isdir(download_dir): os.mkdir(download_dir)
@@ -98,7 +98,8 @@ def main():
     master = con.root
 
 def get_keyboard_input(cur_dir):
-    sys.stdout.write(bcolors.BOLD + bcolors.GREEN + cur_dir); sys.stdout.flush()
+    sys.stdout.write(bcolors.BOLD + bcolors.GREEN + cur_dir);
+    sys.stdout.flush()
 
     cmd = sys.stdin.readline()
     parts = cmd.split(' ')

@@ -83,10 +83,10 @@ if __name__ == "__main__":
 
     try:
 #        con = rpyc.connect("192.168.0.91", port=2131)
-        con = rpyc.connect("localhost", port=2131)
+        con = rpyc.connect("192.168.0.91", port=2131)
         master = con.root
 #        setup('192.168.0.85', 8889, master)
-        setup('127.0.0.1', 8888, master)
+        setup('192.168.0.91', 8888, master)
 
     except Exception as message:
         print message

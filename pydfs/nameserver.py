@@ -25,10 +25,10 @@ def set_conf():
 
     Nameserver.block_size = int(conf.get('nameserver', 'block_size'))
     Nameserver.replication_factor = int(conf.get('nameserver', 'replication_factor'))
-    storage = conf.get('nameserver', 'storage').split(',')
-    for m in storage:
-        id, host, port = m.split(":")
-        Nameserver.minions[id] = (host, port)
+    # storage = conf.get('nameserver', 'storage').split(',')
+    # for m in storage:
+    #     id, host, port = m.split(":")
+    #     Nameserver.minions[id] = (host, port)
 
     if os.path.isfile('fs.img'):
         Nameserver.file_table, Nameserver.block_mapping = pickle.load(
@@ -61,6 +61,7 @@ class Nameserver(rpyc.Service):
         return files
 
     def exposed_read(self, fname):
+        self.check_connection_to_storageservers(self.minions)
         mapping = self.__class__.file_table[fname]
         return mapping
 
@@ -78,6 +79,7 @@ class Nameserver(rpyc.Service):
         return blocks
 
     def exposed_get_file_table_entry(self, fname):
+        self.check_connection_to_storageservers(self.minions)
         if fname in self.__class__.file_table:
             return self.__class__.file_table[fname]
         else:
@@ -137,7 +139,7 @@ class Nameserver(rpyc.Service):
         for keys in temp_dic:
             host, port = temp_dic[keys][0], temp_dic[keys][1]
             if self.storageserverworksfine(str(host), int(port)):
-                print "Storage server " + str(temp_dic[keys][0][1]) + " has problems"
+                print "Storage server " + str(temp_dic[keys]) + " has problems"
                 del dictionary_of_minions[keys]
                 self.__class__.replication_factor -= 1
         self.minions = dictionary_of_minions
