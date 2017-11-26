@@ -2,7 +2,7 @@ import os
 import sys
 
 import rpyc
-import nameserver
+
 
 
 def send_to_storage(block_uuid, data, minions):
@@ -24,7 +24,7 @@ def read_from_storage(block_uuid, minion):
 
 
 def put(master, source, dest):
-    size = os.path.getsize(source)    
+    size = os.path.getsize(source)
     blocks = master.write(dest, size)
     with open(source) as f:
         for b in blocks:
@@ -34,7 +34,8 @@ def put(master, source, dest):
             send_to_storage(block_uuid, data, minions)
 
 
-def get(master,fname, mode):
+
+def get(master, fname, mode):
     file_table = master.get_file_table_entry(fname)
     if not file_table:
         print "404: file not found"
@@ -59,13 +60,15 @@ def get(master,fname, mode):
                 elif mode == 'open':
                     sys.stdout.write(data)
                 break
-            
+
         else:
             print "No blocks found. Possibly a corrupt file"
     print "Done"
+
+
 def main():
     con = rpyc.connect("localhost", port=2131)
-    master = con.root.Nameserver()
+    master = con.root
 
     
     print "Client started. Use 'help' to list all available commands."
@@ -103,19 +106,22 @@ def main():
                 print f
         elif args[0] == 'mkdir':
             if len(args) > 1:
-                dirname = args[1]
+                directoryname = args[1]
+                os.mkdir(directoryname)
             else:
                 print "Directory name is not specified. Usage: mkdir <dirname>"
         elif args[0] == 'cd':
             if len(args) > 1:
-                dirname = args[1]
+                directoryname = args[1]
+                os.chdir(directoryname)
             else:
-                print "Directory name is not specified. Usage: cd <dirname>"    
+                print "Directory name is not specified. Usage: cd <dirname>"
         elif args[0] == 'del':
             if len(args) > 1:
                 obj_name = args[1]
+                os.rmdir(obj_name)
             else:
-                print "Directory or file name is not specified. Usage: del <dirname>/<filename>" 
+                print "Directory or file name is not specified. Usage: del <dirname>/<filename>"
         elif args[0] == 'help':
             print "Commands:"
             print "  ls - see the list of files and directories;"
@@ -137,5 +143,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

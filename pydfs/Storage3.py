@@ -22,14 +22,13 @@ def setup(host, ip, master):
 
     if check_storageserver_existence(new_minion, current_minions_dictionary):
         print "A host with a similar ip and port is already connected"
-        return
 
     else:
         current_size_of_dictionary = len(current_minions_dictionary)
         current_minions_dictionary[current_size_of_dictionary + 1] = new_minion
         master.set_new_minions(current_minions_dictionary)
         print "New storage server added " + str(host) + " : " + str(ip)
-        return
+
 
 class StorageService(rpyc.Service):
     @property
@@ -75,8 +74,8 @@ if __name__ == "__main__":
     try:
         con = rpyc.connect("localhost", port=2131)
         master = con.root
-        setup('127.0.0.1', 8888, master)
+        setup('127.0.0.1', 1111, master)
     except Exception as message:
         print message
-    t = ThreadedServer(StorageService, port=8888)
+    t = ThreadedServer(StorageService, port=1111)
     t.start()
