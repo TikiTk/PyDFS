@@ -102,11 +102,20 @@ def main():
             for f in master.list_files():
                 print f
         elif args[0] == 'mkdir':
-            pass
+            if len(args) > 1:
+                dirname = args[1]
+            else:
+                print "Directory name is not specified. Usage: mkdir <dirname>"
         elif args[0] == 'cd':
-            pass    
+            if len(args) > 1:
+                dirname = args[1]
+            else:
+                print "Directory name is not specified. Usage: cd <dirname>"    
         elif args[0] == 'del':
-            pass 
+            if len(args) > 1:
+                obj_name = args[1]
+            else:
+                print "Directory or file name is not specified. Usage: del <dirname>/<filename>" 
         elif args[0] == 'help':
             print "Commands:"
             print "  ls - see the list of files and directories;"
