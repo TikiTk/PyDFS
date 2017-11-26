@@ -34,6 +34,11 @@ def read_from_storage(block_uuid, minion):
     minion = con.root.Storage()
     return minion.get(block_uuid)
 
+def delete_from_storage(block_uuid, minion):
+    host, port = minion
+    con = rpyc.connect(host, port=port)
+    minion = con.root.Storage()
+    return minion.delete(block_uuid)
 
 def put(master, source, dest):
     size = os.path.getsize(source)    
@@ -76,6 +81,15 @@ def get(master,fname, mode):
             print "No blocks found. Possibly a corrupt file"
     print "Done"
 
+def delete(master,fname):
+    file_table = master.get_file_table_entry(fname)
+    if not file_table:
+        print "404: file not found"
+        return
+    for block in file_table:
+        for m in [master.get_list_of_minions()[_] for _ in block[1]]:
+            delete_from_storage(block[0], m)
+    master.del_file(fname)
 
 def main():
     con = rpyc.connect("localhost", port=2131)
@@ -138,8 +152,9 @@ def main():
                 print "Directory name is not specified. Usage: cd <dirname>"
         elif args[0] == 'del':
             if len(args) > 1:
-                obj_name = args[1]
-                os.rmdir(obj_name)
+#                obj_name = args[1]
+#                os.rmdir(obj_name)
+                delete(master, args[1])
             else:
                 print "Directory or file name is not specified. Usage: del <dirname>/<filename>"
         elif args[0] == 'help':

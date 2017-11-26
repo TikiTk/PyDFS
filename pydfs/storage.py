@@ -59,6 +59,11 @@ class StorageService(rpyc.Service):
             with open(block_addr) as f:
                 return f.read()
 
+        def exposed_delete(self, block_uuid):
+            block_addr = DATA_DIR + str(block_uuid)
+            if os.path.isfile(block_addr):
+                os.remove(block_addr)
+
         def forward(self, block_uuid, data, minions):
             print "8888: forwaring to:"
             print block_uuid, minions
@@ -77,9 +82,12 @@ if __name__ == "__main__":
     if not os.path.isdir(DATA_DIR): os.mkdir(DATA_DIR)
 
     try:
+#        con = rpyc.connect("192.168.0.91", port=2131)
         con = rpyc.connect("localhost", port=2131)
         master = con.root
+#        setup('192.168.0.85', 8889, master)
         setup('127.0.0.1', 8888, master)
+
     except Exception as message:
         print message
     t = ThreadedServer(StorageService, port=8888)
