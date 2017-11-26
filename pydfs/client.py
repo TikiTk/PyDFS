@@ -60,26 +60,28 @@ def get(master,fname, mode):
     flag = 0
     download_dir = os.getcwd() + '/files'
     for block in file_table:
-        for m in [master.get_list_of_minions()[_] for _ in block[1]]:
-            data = read_from_storage(block[0], m)
-            if data:
-                if mode == 'download':
-                    if not os.path.isdir(download_dir): os.mkdir(download_dir)
-                    if flag:
+        for i in range(len(block[1])):
+            if block[1][i] in master.get_list_of_minions():
+                for m in master.get_list_of_minions():
+                    data = read_from_storage(block[0], m)
+                    if data:
+                        if mode == 'download':
+                            if not os.path.isdir(download_dir): os.mkdir(download_dir)
+                            if flag:
 
-                        with open(download_dir + '/' + fname, 'a') as f:
-                            f.write(data)
-                    else:
-                        with open(download_dir + '/' + fname, 'w') as f:
-                            f.write(data)
-                            flag = 1
-                elif mode == 'open':
-                    sys.stdout.write(data)
-                break
-            
-        else:
-            print "No blocks found. Possibly a corrupt file"
-    print "Done"
+                                with open(download_dir + '/' + fname, 'a') as f:
+                                    f.write(data)
+                            else:
+                                with open(download_dir + '/' + fname, 'w') as f:
+                                    f.write(data)
+                                    flag = 1
+                        elif mode == 'open':
+                            sys.stdout.write(data)
+                        break
+                    
+                else:
+                    print "No blocks found. Possibly a corrupt file"
+            print "Done"
 
 def delete(master,fname):
     file_table = master.get_file_table_entry(fname)
