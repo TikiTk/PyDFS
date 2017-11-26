@@ -10,7 +10,8 @@ DATA_DIR = "/tmp/storage/"
 
 def check_storageserver_existence(new_storage, dictionary_of_existing_storage_server):
     for keys in dictionary_of_existing_storage_server:
-        if dictionary_of_existing_storage_server[keys] == new_storage:
+        temp_conversion = new_storage[0], str(new_storage[1])
+        if dictionary_of_existing_storage_server[keys] == temp_conversion:
             return True
     return False
 
@@ -28,6 +29,8 @@ def setup(host, ip, master):
         current_size_of_dictionary = len(current_minions_dictionary)
         current_minions_dictionary[current_size_of_dictionary + 1] = new_minion
         master.set_new_minions(current_minions_dictionary)
+        replication_factor = master.get_replication_factor()
+        master.set_replication_factor(replication_factor+1)
         print "New storage server added " + str(host) + " : " + str(ip)
         return
 

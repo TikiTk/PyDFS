@@ -43,6 +43,12 @@ class Nameserver(rpyc.Service):
     block_size = 0
     replication_factor = 0
 
+    def exposed_get_replication_factor(self):
+        return self.replication_factor
+
+    def exposed_set_replication_factor(self,replication):
+        self.replication_factor = replication
+
     def exposed_get_list_of_minions(self):
         return self.__class__.minions
 
@@ -105,7 +111,7 @@ class Nameserver(rpyc.Service):
         if result:
             return True  # server has a problem
         else:
-            print False  # server works fine
+            return False  # server works fine
 
     def check_connection_to_storageservers(self, dictionary_of_minions):
 

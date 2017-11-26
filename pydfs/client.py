@@ -42,7 +42,7 @@ def put(master, source, dest):
         for b in blocks:
             data = f.read(master.get_block_size())
             block_uuid = b[0]
-            minions = [master.get_storageservers()[_] for _ in b[1]]
+            minions = [master.get_list_of_minions()[_] for _ in b[1]]
             send_to_storage(block_uuid, data, minions)
 
 
@@ -55,7 +55,7 @@ def get(master,fname, mode):
     flag = 0
     download_dir = os.getcwd() + '/files'
     for block in file_table:
-        for m in [master.get_storageservers()[_] for _ in block[1]]:
+        for m in [master.get_list_of_minions()[_] for _ in block[1]]:
             data = read_from_storage(block[0], m)
             if data:
                 if mode == 'download':
@@ -93,7 +93,7 @@ def get_keyboard_input(cur_dir):
 
 def main():
     con = rpyc.connect("localhost", port=2131)
-    master = con.root.Nameserver()
+    master = con.root
 
     cur_dir = "~/"
     print "Client started. Use 'help' to list all available commands."
