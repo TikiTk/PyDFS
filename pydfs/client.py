@@ -1,8 +1,21 @@
 import os
 import sys
 
+from termcolor import colored
+from colorama import Fore, Back, init, Style
+
 import rpyc
 
+init(autoreset=True)
+class bcolors:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 def send_to_storage(block_uuid, data, minions):
     print "sending: " + str(block_uuid) + str(minions)
@@ -23,7 +36,7 @@ def read_from_storage(block_uuid, minion):
 
 
 def put(master, source, dest):
-    size = os.path.getsize(source)
+    size = os.path.getsize(source)    
     blocks = master.write(dest, size)
     with open(source) as f:
         for b in blocks:
@@ -33,12 +46,12 @@ def put(master, source, dest):
             send_to_storage(block_uuid, data, minions)
 
 
-def get(master, fname, mode):
+def get(master,fname, mode):
     file_table = master.get_file_table_entry(fname)
     if not file_table:
         print "404: file not found"
         return
-
+    print file_table
     flag = 0
     download_dir = os.getcwd() + '/files'
     for block in file_table:
@@ -58,7 +71,7 @@ def get(master, fname, mode):
                 elif mode == 'open':
                     sys.stdout.write(data)
                 break
-
+            
         else:
             print "No blocks found. Possibly a corrupt file"
     print "Done"
@@ -68,14 +81,23 @@ def main():
     con = rpyc.connect("localhost", port=2131)
     master = con.root
 
-    print "Client started. Use 'help' to list all available commands."
+def get_keyboard_input(cur_dir):
+    sys.stdout.write(bcolors.BOLD + bcolors.GREEN + cur_dir); sys.stdout.flush()
 
     cmd = sys.stdin.readline()
     parts = cmd.split(' ')
     args = []
     for part in parts:
         args.append(part.strip())
+    return args
 
+def main():
+    con = rpyc.connect("localhost", port=2131)
+    master = con.root.Nameserver()
+
+    cur_dir = "~/"
+    print "Client started. Use 'help' to list all available commands."
+    args = get_keyboard_input(cur_dir)
     while args[0] != 'exit':
         if args[0] == 'get':
             if len(args) > 1:
@@ -97,10 +119,11 @@ def main():
                 else:
                     print "Too many arguments"
             else:
-                print "File is not specified. Usage: put <file> [new filename]"
+                print "File is not specified. Usage: put <file> [new filename]"    
         elif args[0] == 'ls':
             for f in master.list_files():
-                print f
+
+                print Fore.YELLOW + f
         elif args[0] == 'mkdir':
             if len(args) > 1:
                 directoryname = args[1]
@@ -131,12 +154,10 @@ def main():
             print "  exit - stop the client"
         else:
             print "Wrong input. Try again (use 'help' to get list of all available commands)"
-        cmd = sys.stdin.readline()
-        parts = cmd.split(' ')
-        args = []
-        for part in parts:
-            args.append(part.strip())
+        args = get_keyboard_input(cur_dir)
 
 
 if __name__ == "__main__":
     main()
+
+
