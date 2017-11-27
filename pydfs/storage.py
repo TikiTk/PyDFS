@@ -1,6 +1,9 @@
 import rpyc
 import uuid
 import os
+import sys
+import pickle
+import signal
 from pathlib2 import Path
 
 from rpyc.utils.server import ThreadedServer
@@ -33,7 +36,21 @@ def setup(host, ip, master):
         master.set_replication_factor(replication_factor+1)
         print "New storage server added " + str(host) + " : " + str(ip)
         return
+def get_ip_port_config(default_ip, default_port):
+    sys.stdout.write('Type IP-address (default is ' + default_ip + '): '); sys.stdout.flush()
+    user_input = sys.stdin.readline().strip()
+    addr = user_input if user_input else default_ip
 
+    sys.stdout.write('Type a port (default is ' + str(default_port) + '): '); sys.stdout.flush()
+    user_input = sys.stdin.readline().strip()
+    port = int(user_input) if user_input else default_port
+
+    return addr, port    
+
+def int_handler(signal, frame):
+    pickle.dump((n_addr, n_port, s_addr, s_port),
+                open('last_storage.conf', 'wb'))
+    sys.exit(0)
 
 class StorageService(rpyc.Service):
     @property
@@ -78,14 +95,27 @@ class StorageService(rpyc.Service):
 if __name__ == "__main__":
     if not os.path.isdir(DATA_DIR): os.mkdir(DATA_DIR)
 
+
+    if os.path.isfile('last_storage.conf'):
+        n_addr, n_port, s_addr, s_port = pickle.load(
+            open('last_storage.conf', 'rb'))
+    else:
+        print "Nameserver configuration:"
+        n_addr, n_port = get_ip_port_config('localhost', 2131)    
+        print ""
+
+        print "Storage server configuration: "
+        s_addr, s_port = get_ip_port_config('127.0.0.1', 8888)
+        print ""
+
+    signal.signal(signal.SIGINT, int_handler)
+
     try:
-        # con = rpyc.connect("192.168.0.91", port=2131)
-        con = rpyc.connect("localhost", port=2131)
-        master = con.root
-        # setup('192.168.0.85', 8899, master)
-        setup('127.0.0.1', 8888, master)
+        con = rpyc.connect(n_addr, n_port)
+        master = con.root        
+        setup(s_addr, s_port, master)
 
     except Exception as message:
         print message
-    t = ThreadedServer(StorageService, port=8888)
+    t = ThreadedServer(StorageService, port=s_port)
     t.start()
