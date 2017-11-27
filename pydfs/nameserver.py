@@ -109,7 +109,7 @@ class Nameserver(rpyc.Service):
         if obj_type == 'file':
             obj_to_add = {obj_name: 'file'}
         elif obj_type == 'dir':
-            obj_to_add = {obj_name: {}}
+            obj_to_add = {obj_name: {'.':'self','..':'parent'}}
 
         if path == '/':
             self.__class__.directory_tree.update(obj_to_add)
@@ -117,9 +117,10 @@ class Nameserver(rpyc.Service):
             reduce(operator.getitem, dirs, self.__class__.directory_tree).update(obj_to_add)
         #print(self.__class__.directory_tree)
 
-    def exposed_get_file_table_entry(self, fname):
+    def exposed_get_file_table_entry(self, path, fname):
         self.check_connection_to_storageservers(self.minions)
-        if fname in self.__class__.file_table:
+        flist = Nameserver.exposed_list(self, path)
+        if (fname in self.__class__.file_table) and (fname in flist):
             return self.__class__.file_table[fname]
         else:
             return None

@@ -4,6 +4,8 @@ import sys
 from termcolor import colored
 from colorama import Fore, Back, init, Style
 
+import collections
+
 import rpyc
 
 init(autoreset=True)
@@ -48,10 +50,10 @@ def put(master, source, dest):
             send_to_storage(block_uuid, data, minions)
 
 
-def get(master,fname, mode):
-    file_table = master.get_file_table_entry(fname)
+def get(master, path, fname, mode):
+    file_table = master.get_file_table_entry(path, fname)
     if not file_table:
-        print "404: file not found"
+        print "No such file"
         return
     print file_table
     flag = 0
@@ -82,7 +84,7 @@ def get(master,fname, mode):
 def delete(master,fname):
     file_table = master.get_file_table_entry(fname)
     if not file_table:
-        print "404: file not found"
+        print "No such file"
         return
     for block in file_table:
         for m in [master.get_list_of_minions()[_] for _ in block[1]]:
@@ -110,12 +112,12 @@ def main():
     while args[0] != 'exit':
         if args[0] == 'get':
             if len(args) > 1:
-                get(master, args[1], 'download')
+                get(master, cur_dir, args[1], 'download')
             else:
                 print "Filename is not specified. Usage: get <filename>"
         elif args[0] == 'cat':
             if len(args) > 1:
-                get(master, args[1], 'open')
+                get(master, cur_dir, args[1], 'open')
             else:
                 print "Filename is not specified. Usage: cat <filename>"
         elif args[0] == 'put':
@@ -132,7 +134,7 @@ def main():
             else:
                 print "File is not specified. Usage: put <file> [new filename]"    
         elif args[0] == 'ls':
-            obj_list = master.list(cur_dir)
+            obj_list = master.list(cur_dir)            
             for obj in obj_list:                    
                 if obj_list[obj] == 'file':
                     s = master.get_file_size(obj)
@@ -149,10 +151,17 @@ def main():
             if len(args) > 1:
                 dirname = args[1]
                 obj_list = master.list(cur_dir)
-                for obj in obj_list:                    
-                    if obj == dirname and obj_list[obj] == 'dir':
-                        cur_dir = cur_dir + obj + '/'
-                        break                        
+                if dirname in obj_list:
+                    for obj in obj_list:                    
+                        if obj == dirname and obj_list[obj] == 'dir' and obj != '.' and obj != '..' :
+                            cur_dir = cur_dir + obj + '/'
+                            break
+                        if dirname == '..':                        
+                            a,b,c = cur_dir.rsplit('/',2)                        
+                            cur_dir = cur_dir[:-(len(b)+ 1)]
+                            break
+                else:
+                    print "No such directory"              
             else:
                 print "Directory name is not specified. Usage: cd <dirname>"
         elif args[0] == 'del':
