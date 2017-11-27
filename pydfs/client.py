@@ -81,15 +81,26 @@ def get(master, path, fname, mode):
                         print "No blocks found. Possibly a corrupt file"
                 print "Done"
 
-def delete(master,fname):
-    file_table = master.get_file_table_entry(fname)
-    if not file_table:
-        print "No such file"
-        return
-    for block in file_table:
-        for m in [master.get_list_of_minions()[_] for _ in block[1]]:
-            delete_from_storage(block[0], m)
-    master.del_file(fname)
+def delete(master, path, obj_name):
+    obj_list = master.list(path)
+
+
+
+    if obj_name in obj_list:
+        if obj_list[obj_name] == 'file':
+            file_table = master.get_file_table_entry(path, obj_name)
+            if not file_table:
+                print "No such file"
+                return
+            for block in file_table:
+                for i in range(len(block[1])):
+                    if block[1][i] in master.get_list_of_minions():
+                        active_minions = master.get_list_of_minions()
+                        for m in active_minions:                            
+                            delete_from_storage(block[0], active_minions[m])
+            master.del_file(obj_name)
+        elif obj_list[obj_name] == 'dir' and obj_name != '.' and obj_name != '..':
+            pass
 
 def get_keyboard_input(cur_dir):
     sys.stdout.write(bcolors.BOLD + bcolors.GREEN + '~' + cur_dir);
@@ -166,7 +177,7 @@ def main():
                 print "Directory name is not specified. Usage: cd <dirname>"
         elif args[0] == 'del':
             if len(args) > 1:
-                delete(master, args[1])
+                delete(master, cur_dir, args[1])
             else:
                 print "Directory or file name is not specified. Usage: del <dirname>/<filename>"
         elif args[0] == 'help':

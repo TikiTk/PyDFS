@@ -138,6 +138,9 @@ class Nameserver(rpyc.Service):
         if fname in self.__class__.file_table:
             del self.__class__.file_table[fname]
 
+        if fname in self.__class__.directory_tree:
+            del self.__class__.directory_tree[fname]
+
 
     def exposed_get_block_size(self):
         return self.__class__.block_size
