@@ -40,10 +40,10 @@ def delete_from_storage(block_uuid, minion):
     return minion.delete(block_uuid)
 
 
-def put(master, source, filename):
+def put(master, source, filename,dir):
     size = os.path.getsize(source)
-    if (master.exists(filename)):
-        print "File exists"
+    if master.exists(filename,dir):
+        print 'File exists'
         return
     else:
         blocks = master.write(filename, size)
@@ -88,9 +88,6 @@ def get(master, path, fname, mode):
 
 def delete(master, path, obj_name):
     obj_list = master.list(path)
-
-
-
     if obj_name in obj_list:
         if obj_list[obj_name] == 'file':
             file_table = master.get_file_table_entry(path, obj_name)
@@ -143,7 +140,7 @@ def main():
                     master.add_obj(cur_dir, args[2], 'file')
                 elif len(args) == 2:
                     fname = os.path.basename(args[1])
-                    put(master, args[1], fname)
+                    put(master, args[1], fname,cur_dir)
                     master.add_obj(cur_dir, fname, 'file')
                 else:
                     print "Too many arguments"

@@ -134,14 +134,20 @@ class Nameserver(rpyc.Service):
             return None
 
     def exposed_del_file(self, fname):
-        if fname in self.__class__.file_sizes:
-            del self.__class__.file_sizes[fname]
+        temp_files_size = deepcopy(self.__class__.file_sizes)
+        temp_file_table = deepcopy(self.__class__.file_table)
+        temp_dictionary = deepcopy(self.__class__.directory_tree)
+        if fname in temp_files_size:
+            del temp_files_size[fname]
+            self.__class__.file_sizes = temp_files_size
 
-        if fname in self.__class__.file_table:
-            del self.__class__.file_table[fname]
+        if fname in temp_file_table:
+            del temp_file_table[fname]
+            self.__class__.file_table = temp_files_size
 
-        if fname in self.__class__.directory_tree:
-            del self.__class__.directory_tree[fname]
+        if fname in temp_dictionary:
+            del temp_dictionary[fname]
+            self.__class__.directory_tree = temp_dictionary
 
 
     def exposed_get_block_size(self):
@@ -153,8 +159,13 @@ class Nameserver(rpyc.Service):
     def calc_num_blocks(self, size):
         return int(math.ceil(float(size) / self.__class__.block_size))
 
-    def exposed_exists(self, file):
-        return file in self.__class__.file_table
+    def exposed_exists(self, filename, dirs):
+        dirs = dirs.split('/')
+        dirs = filter(lambda directory: directory != '', dirs)
+        if dirs == '/':
+            return filename in self.__class__.directory_tree.update
+        reduce(operator.getitem, dirs, self.__class__.directory_tree)
+        return filename in self.__class__.file_table
 
     def alloc_blocks(self, dest, num):
         blocks = []
