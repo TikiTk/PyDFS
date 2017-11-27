@@ -14,7 +14,7 @@ from storage import StorageService
 
 
 def int_handler(signal, frame):
-    pickle.dump((Nameserver.file_table, Nameserver.block_mapping, Nameserver.file_sizes),
+    pickle.dump((Nameserver.file_table, Nameserver.block_mapping, Nameserver.file_sizes, Nameserver.directory_tree),
                 open('fs.img', 'wb'))
     sys.exit(0)
 
@@ -31,7 +31,7 @@ def set_conf():
     #     Nameserver.minions[id] = (host, port)
 
     if os.path.isfile('fs.img'):
-        Nameserver.file_table, Nameserver.block_mapping, Nameserver.file_sizes = pickle.load(
+        Nameserver.file_table, Nameserver.block_mapping, Nameserver.file_sizes, Nameserver.directory_tree = pickle.load(
             open('fs.img', 'rb'))
 
 
@@ -43,6 +43,7 @@ class Nameserver(rpyc.Service):
     block_size = 0
     replication_factor = 0
     file_sizes = {}
+    directory_tree = {}
 
     def exposed_get_replication_factor(self):
         return self.replication_factor
@@ -60,6 +61,23 @@ class Nameserver(rpyc.Service):
         files = self.__class__.file_table.keys()
         return files
 
+    def exposed_list(self, path):
+        dirs = path.split('/')
+        dir_list = {}
+        if path == '/':
+            for obj, value in self.__class__.directory_tree.iteritems():
+                if value != 'file':
+                    dir_list[obj] = 'dir'
+                else:
+                    dir_list[obj] = 'file'
+        else:
+            for obj, value in reduce(operator.getitem, dirs, self.__class__.directory_tree):
+                if value != 'file':
+                    dir_list[obj] = 'dir'
+                else:
+                    dir_list[obj] = 'file'
+        return dir_list           
+        
     def exposed_read(self, fname):
         self.check_connection_to_storageservers(self.minions)
         mapping = self.__class__.file_table[fname]
@@ -77,6 +95,20 @@ class Nameserver(rpyc.Service):
         num_blocks = self.calc_num_blocks(size)
         blocks = self.alloc_blocks(dest, num_blocks)
         return blocks
+
+    def exposed_add_obj(self, path, obj_name, obj_type='dir'):
+        dirs = path.split('/')
+        
+        if obj_type == 'file':
+            obj_to_add = {obj_name: 'file'}
+        elif obj_type == 'dir':
+            obj_to_add = {obj_name: {}}
+
+        if path == '/':
+            self.__class__.directory_tree.update(obj_to_add)
+        else:
+            reduce(operator.getitem, dirs, self.__class__.directory_tree).update(obj_to_add)
+        #print(self.__class__.directory_tree)
 
     def exposed_get_file_table_entry(self, fname):
         self.check_connection_to_storageservers(self.minions)

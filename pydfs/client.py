@@ -104,7 +104,7 @@ def main():
     con = rpyc.connect("localhost", port=2131)
     master = con.root
 
-    cur_dir = "~/"
+    cur_dir = "/"
     print "Client started. Use 'help' to list all available commands."
     args = get_keyboard_input(cur_dir)
     while args[0] != 'exit':
@@ -122,21 +122,27 @@ def main():
             if len(args) > 1:
                 if len(args) == 3:
                     put(master, args[1], args[2])
+                    master.add_obj(cur_dir, args[2], 'file')
                 elif len(args) == 2:
                     fname = os.path.basename(args[1])
                     put(master, args[1], fname)
+                    master.add_obj(cur_dir, fname, 'file')
                 else:
                     print "Too many arguments"
             else:
                 print "File is not specified. Usage: put <file> [new filename]"    
         elif args[0] == 'ls':
-            for f in master.list_files():
-                s = master.get_file_size(f)
-                print Fore.YELLOW + f + '\t\t' + str(s) + ' bytes'
+            obj_list = master.list(cur_dir)
+            for obj in obj_list:                    
+                if obj_list[obj] == 'file':
+                    s = master.get_file_size(obj)
+                    print Fore.YELLOW + obj + '\t\t' + str(s) + ' bytes'
+                else:
+                    print Fore.CYAN + bcolors.BOLD + obj
         elif args[0] == 'mkdir':
             if len(args) > 1:
-                directoryname = args[1]
-                os.mkdir(directoryname)
+                dirname = args[1]
+                master.add_obj(cur_dir, dirname)
             else:
                 print "Directory name is not specified. Usage: mkdir <dirname>"
         elif args[0] == 'cd':
