@@ -8,14 +8,12 @@ import rpyc
 
 init(autoreset=True)
 class bcolors:
-    HEADER = '\033[95m'
     BLUE = '\033[94m'
     GREEN = '\033[92m'
     WARNING = '\033[93m'
     FAIL = '\033[91m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 def send_to_storage(block_uuid, data, minions):
     print "sending: " + str(block_uuid) + str(minions)
@@ -26,7 +24,6 @@ def send_to_storage(block_uuid, data, minions):
     con = rpyc.connect(host, port=port)
     minion = con.root.Storage()
     minion.put(block_uuid, data, minions)
-
 
 def read_from_storage(block_uuid, minion):
     host, port = minion
@@ -77,11 +74,10 @@ def get(master,fname, mode):
                                     flag = 1
                         elif mode == 'open':
                             sys.stdout.write(data)
-                        break
-                    
-                else:
-                    print "No blocks found. Possibly a corrupt file"
-            print "Done"
+                        break                    
+                    else:
+                        print "No blocks found. Possibly a corrupt file"
+                print "Done"
 
 def delete(master,fname):
     file_table = master.get_file_table_entry(fname)
@@ -92,8 +88,6 @@ def delete(master,fname):
         for m in [master.get_list_of_minions()[_] for _ in block[1]]:
             delete_from_storage(block[0], m)
     master.del_file(fname)
-
-
 
 def get_keyboard_input(cur_dir):
     sys.stdout.write(bcolors.BOLD + bcolors.GREEN + cur_dir);
@@ -107,7 +101,7 @@ def get_keyboard_input(cur_dir):
     return args
 
 def main():
-    con = rpyc.connect("192.168.0.91", port=2131)
+    con = rpyc.connect("localhost", port=2131)
     master = con.root
 
     cur_dir = "~/"
@@ -138,7 +132,7 @@ def main():
         elif args[0] == 'ls':
             for f in master.list_files():
                 s = master.get_file_size(f)
-                print Fore.YELLOW + f + ' ' + str(s)
+                print Fore.YELLOW + f + '\t\t' + str(s) + ' bytes'
         elif args[0] == 'mkdir':
             if len(args) > 1:
                 directoryname = args[1]
@@ -153,8 +147,6 @@ def main():
                 print "Directory name is not specified. Usage: cd <dirname>"
         elif args[0] == 'del':
             if len(args) > 1:
-#                obj_name = args[1]
-#                os.rmdir(obj_name)
                 delete(master, args[1])
             else:
                 print "Directory or file name is not specified. Usage: del <dirname>/<filename>"
@@ -175,5 +167,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

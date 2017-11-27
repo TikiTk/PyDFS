@@ -14,7 +14,7 @@ from storage import StorageService
 
 
 def int_handler(signal, frame):
-    pickle.dump((Nameserver.file_table, Nameserver.block_mapping),
+    pickle.dump((Nameserver.file_table, Nameserver.block_mapping, Nameserver.file_sizes),
                 open('fs.img', 'wb'))
     sys.exit(0)
 
@@ -31,7 +31,7 @@ def set_conf():
     #     Nameserver.minions[id] = (host, port)
 
     if os.path.isfile('fs.img'):
-        Nameserver.file_table, Nameserver.block_mapping = pickle.load(
+        Nameserver.file_table, Nameserver.block_mapping, Nameserver.file_sizes = pickle.load(
             open('fs.img', 'rb'))
 
 
@@ -97,7 +97,6 @@ class Nameserver(rpyc.Service):
 
         if fname in self.__class__.file_table:
             del self.__class__.file_table[fname]
-
 
 
     def exposed_get_block_size(self):

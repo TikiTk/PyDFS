@@ -65,7 +65,7 @@ class StorageService(rpyc.Service):
                 os.remove(block_addr)
 
         def forward(self, block_uuid, data, minions):
-            print "8888: forwaring to:"
+            print "Forwaring to:"
             print block_uuid, minions
             minion = minions[0]
             minions = minions[1:]
@@ -74,21 +74,18 @@ class StorageService(rpyc.Service):
             minion = local_connection.root.Storage()
             minion.put(block_uuid, data, minions)
 
-        def delete_block(self, uuid):
-            pass
-
 
 if __name__ == "__main__":
     if not os.path.isdir(DATA_DIR): os.mkdir(DATA_DIR)
 
     try:
-        con = rpyc.connect("192.168.0.91", port=2131)
-#        con = rpyc.connect("localhost", port=2131)
+        # con = rpyc.connect("192.168.0.91", port=2131)
+        con = rpyc.connect("localhost", port=2131)
         master = con.root
-        setup('192.168.0.85', 8899, master)
-#        setup('127.0.0.1', 8888, master)
+        # setup('192.168.0.85', 8899, master)
+        setup('127.0.0.1', 8888, master)
 
     except Exception as message:
         print message
-    t = ThreadedServer(StorageService, port=8899)
+    t = ThreadedServer(StorageService, port=8888)
     t.start()
