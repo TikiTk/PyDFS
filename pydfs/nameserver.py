@@ -11,6 +11,8 @@ import rpyc
 from rpyc.utils.server import ThreadedServer
 from copy import deepcopy
 from storage import StorageService
+from functools import reduce
+import operator
 
 
 def int_handler(signal, frame):
@@ -63,6 +65,8 @@ class Nameserver(rpyc.Service):
 
     def exposed_list(self, path):
         dirs = path.split('/')
+        while '' in dirs:
+            dirs.remove('')
         dir_list = {}
         if path == '/':
             for obj, value in self.__class__.directory_tree.iteritems():
@@ -70,13 +74,15 @@ class Nameserver(rpyc.Service):
                     dir_list[obj] = 'dir'
                 else:
                     dir_list[obj] = 'file'
-        else:
-            for obj, value in reduce(operator.getitem, dirs, self.__class__.directory_tree):
-                if value != 'file':
-                    dir_list[obj] = 'dir'
-                else:
-                    dir_list[obj] = 'file'
-        return dir_list           
+        else:            
+            dir_content = reduce(operator.getitem, dirs, self.__class__.directory_tree)
+            if not bool(dir_content):
+                for obj, value in dir_content.iteritems():
+                    if value != 'file':
+                        dir_list[obj] = 'dir'
+                    else:
+                        dir_list[obj] = 'file'
+        return dir_list   
         
     def exposed_read(self, fname):
         self.check_connection_to_storageservers(self.minions)
@@ -98,6 +104,8 @@ class Nameserver(rpyc.Service):
 
     def exposed_add_obj(self, path, obj_name, obj_type='dir'):
         dirs = path.split('/')
+        while '' in dirs:
+            dirs.remove('')
         
         if obj_type == 'file':
             obj_to_add = {obj_name: 'file'}

@@ -90,7 +90,7 @@ def delete(master,fname):
     master.del_file(fname)
 
 def get_keyboard_input(cur_dir):
-    sys.stdout.write(bcolors.BOLD + bcolors.GREEN + cur_dir);
+    sys.stdout.write(bcolors.BOLD + bcolors.GREEN + '~' + cur_dir);
     sys.stdout.flush()
 
     cmd = sys.stdin.readline()
@@ -147,8 +147,12 @@ def main():
                 print "Directory name is not specified. Usage: mkdir <dirname>"
         elif args[0] == 'cd':
             if len(args) > 1:
-                directoryname = args[1]
-                os.chdir(directoryname)
+                dirname = args[1]
+                obj_list = master.list(cur_dir)
+                for obj in obj_list:                    
+                    if obj == dirname and obj_list[obj] == 'dir':
+                        cur_dir = cur_dir + obj + '/'
+                        break                        
             else:
                 print "Directory name is not specified. Usage: cd <dirname>"
         elif args[0] == 'del':
