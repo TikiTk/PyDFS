@@ -39,15 +39,20 @@ def delete_from_storage(block_uuid, minion):
     minion = con.root.Storage()
     return minion.delete(block_uuid)
 
-def put(master, source, dest):
-    size = os.path.getsize(source)    
-    blocks = master.write(dest, size)
-    with open(source) as f:
-        for b in blocks:
-            data = f.read(master.get_block_size())
-            block_uuid = b[0]
-            minions = [master.get_list_of_minions()[_] for _ in b[1]]
-            send_to_storage(block_uuid, data, minions)
+
+def put(master, source, filename):
+    size = os.path.getsize(source)
+    if (master.exists(filename)):
+        print "File exists"
+        return
+    else:
+        blocks = master.write(filename, size)
+        with open(source) as f:
+            for b in blocks:
+                data = f.read(master.get_block_size())
+                block_uuid = b[0]
+                minions = [master.get_list_of_minions()[_] for _ in b[1]]
+                send_to_storage(block_uuid, data, minions)
 
 
 def get(master, path, fname, mode):
@@ -96,7 +101,7 @@ def delete(master, path, obj_name):
                 for i in range(len(block[1])):
                     if block[1][i] in master.get_list_of_minions():
                         active_minions = master.get_list_of_minions()
-                        for m in active_minions:                            
+                        for m in active_minions:
                             delete_from_storage(block[0], active_minions[m])
             master.del_file(obj_name)
         elif obj_list[obj_name] == 'dir' and obj_name != '.' and obj_name != '..':
@@ -143,9 +148,9 @@ def main():
                 else:
                     print "Too many arguments"
             else:
-                print "File is not specified. Usage: put <file> [new filename]"    
+                print "File is not specified. Usage: put <file> [new filename]"
         elif args[0] == 'ls':
-            obj_list = master.list(cur_dir)            
+            obj_list = master.list(cur_dir)
             for obj in obj_list:                    
                 if obj_list[obj] == 'file':
                     s = master.get_file_size(obj)
@@ -155,7 +160,10 @@ def main():
         elif args[0] == 'mkdir':
             if len(args) > 1:
                 dirname = args[1]
-                master.add_obj(cur_dir, dirname)
+                if master.check_if_directory_exists(cur_dir, dirname):
+                    print "Folder exists"
+                else:
+                    master.add_obj(cur_dir, dirname)
             else:
                 print "Directory name is not specified. Usage: mkdir <dirname>"
         elif args[0] == 'cd':
@@ -163,16 +171,16 @@ def main():
                 dirname = args[1]
                 obj_list = master.list(cur_dir)
                 if dirname in obj_list:
-                    for obj in obj_list:                    
+                    for obj in obj_list:
                         if obj == dirname and obj_list[obj] == 'dir' and obj != '.' and obj != '..' :
                             cur_dir = cur_dir + obj + '/'
                             break
-                        if dirname == '..':                        
-                            a,b,c = cur_dir.rsplit('/',2)                        
+                        if dirname == '..':
+                            a,b,c = cur_dir.rsplit('/',2)
                             cur_dir = cur_dir[:-(len(b)+ 1)]
                             break
                 else:
-                    print "No such directory"              
+                    print "No such directory"
             else:
                 print "Directory name is not specified. Usage: cd <dirname>"
         elif args[0] == 'del':
