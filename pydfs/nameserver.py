@@ -75,15 +75,14 @@ class Nameserver(rpyc.Service):
                 else:
                     dir_list[obj] = 'file'
         else:            
-            dir_content = reduce(operator.getitem, dirs, self.__class__.directory_tree)
-            if not bool(dir_content):
-                for obj, value in dir_content.iteritems():
-                    if value != 'file':
-                        dir_list[obj] = 'dir'
-                    else:
-                        dir_list[obj] = 'file'
-        return dir_list   
-        
+            dir_content = reduce(operator.getitem, dirs, self.__class__.directory_tree)            
+            for obj, value in dir_content.iteritems():
+                if value != 'file':
+                    dir_list[obj] = 'dir'
+                else:
+                    dir_list[obj] = 'file'
+        return dir_list        
+
     def exposed_read(self, fname):
         self.check_connection_to_storageservers(self.minions)
         mapping = self.__class__.file_table[fname]
