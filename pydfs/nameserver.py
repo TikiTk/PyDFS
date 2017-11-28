@@ -111,7 +111,6 @@ class Nameserver(rpyc.Service):
         else:
             reduce(operator.getitem, dirs, self.__class__.directory_tree).update(obj_to_add)
         return True
-        #print(self.__class__.directory_tree)
 
     def exposed_get_file_table_entry(self, path, fname):
         self.check_connection_to_storageservers(self.minions)
@@ -135,8 +134,14 @@ class Nameserver(rpyc.Service):
         if full_name in self.__class__.file_table:
             del self.__class__.file_table[full_name]
 
-        if fname in self.__class__.directory_tree:
-            del self.__class__.directory_tree[fname]
+        dirs = self.get_dirs_in_path(path)       
+        if path == '/':
+            if fname in self.__class__.directory_tree:         
+                del self.__class__.directory_tree[fname]
+        else:
+            fdir = reduce(operator.getitem, dirs, self.__class__.directory_tree)
+            if fname in fdir:
+                del fdir[fname]
 
     def exposed_del_dir(self, dirname):        
         if dirname in self.__class__.directory_tree:
@@ -149,12 +154,12 @@ class Nameserver(rpyc.Service):
                 files.update({file:self.__class__.file_table[file]})        
         return files
 
-
     def exposed_get_block_size(self):
         return self.__class__.block_size
 
     def exposed_get_storageservers(self):
         return self.__class__.minions
+
 
 
     def get_dirs_in_path(self, path):

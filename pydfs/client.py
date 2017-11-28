@@ -85,35 +85,31 @@ def get(master, path, fname, mode):
                         print "No blocks found. Possibly a corrupt file"
                 print "Done"
 
+def delete_file(master, path, fname):
+    file_table = master.get_file_table_entry(path, fname)                
+    if file_table:   
+        for block in file_table:
+            for i in range(len(block[1])):
+                if block[1][i] in master.get_list_of_minions():
+                    active_minions = master.get_list_of_minions()                                
+                    for m in active_minions:                                    
+                        delete_from_storage(block[0], active_minions[m])
+    else:
+        print "No such file"
+    master.del_file(path, fname)
+
 def delete(master, path, obj_name):
     obj_list = master.list(path)
 
     if obj_name in obj_list:
         if obj_list[obj_name] == 'file':
-            file_table = master.get_file_table_entry(path, obj_name)
-            if not file_table:
-                print "No such file"
-                return
-            for block in file_table:
-                for i in range(len(block[1])):
-                    if block[1][i] in master.get_list_of_minions():
-                        active_minions = master.get_list_of_minions()
-                        for m in active_minions:                            
-                            delete_from_storage(block[0], active_minions[m])
-            master.del_file(path, obj_name)
+            delete_file(master, path, obj_name)
         elif obj_list[obj_name] == 'dir' and obj_name != '.' and obj_name != '..':
             files = master.get_files_in_dir(path + obj_name)            
             for file in files:                
-                fpath, fname = file.rsplit('/',1)                
-                file_table = master.get_file_table_entry(fpath + '/', fname)                
-                if file_table:   
-                    for block in file_table:
-                        for i in range(len(block[1])):
-                            if block[1][i] in master.get_list_of_minions():
-                                active_minions = master.get_list_of_minions()                                
-                                for m in active_minions:                                    
-                                    delete_from_storage(block[0], active_minions[m])
-                master.del_file(fpath, fname)
+                fpath, fname = file.rsplit('/',1)
+                fpath = fpath + '/'             
+                delete_file(master, fpath, fname)
             master.del_dir(obj_name)
 
 def get_keyboard_input(cur_dir):
