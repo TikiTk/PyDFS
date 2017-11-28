@@ -39,15 +39,19 @@ def delete_from_storage(block_uuid, minion):
     minion = con.root.Storage()
     return minion.delete(block_uuid)
 
-def put(master, source, dest):
-    size = os.path.getsize(source)    
-    blocks = master.write(dest, size)
-    with open(source) as f:
-        for b in blocks:
-            data = f.read(master.get_block_size())
-            block_uuid = b[0]
-            minions = [master.get_list_of_minions()[_] for _ in b[1]]
-            send_to_storage(block_uuid, data, minions)
+def put(master, path, source, dest):
+    size = os.path.getsize(source)
+    full_dest = path + dest
+    blocks = master.write(full_dest, size)
+    if blocks:
+        with open(source) as f:
+            for b in blocks:
+                data = f.read(master.get_block_size())
+                block_uuid = b[0]
+                minions = [master.get_list_of_minions()[_] for _ in b[1]]
+                send_to_storage(block_uuid, data, minions)
+    else:
+        print "File already exists"
 
 
 def get(master, path, fname, mode):
@@ -84,8 +88,6 @@ def get(master, path, fname, mode):
 def delete(master, path, obj_name):
     obj_list = master.list(path)
 
-
-
     if obj_name in obj_list:
         if obj_list[obj_name] == 'file':
             file_table = master.get_file_table_entry(path, obj_name)
@@ -98,9 +100,21 @@ def delete(master, path, obj_name):
                         active_minions = master.get_list_of_minions()
                         for m in active_minions:                            
                             delete_from_storage(block[0], active_minions[m])
-            master.del_file(obj_name)
+            master.del_file(path, obj_name)
         elif obj_list[obj_name] == 'dir' and obj_name != '.' and obj_name != '..':
-            pass
+            files = master.get_files_in_dir(path + obj_name)            
+            for file in files:                
+                fpath, fname = file.rsplit('/',1)                
+                file_table = master.get_file_table_entry(fpath + '/', fname)                
+                if file_table:   
+                    for block in file_table:
+                        for i in range(len(block[1])):
+                            if block[1][i] in master.get_list_of_minions():
+                                active_minions = master.get_list_of_minions()                                
+                                for m in active_minions:                                    
+                                    delete_from_storage(block[0], active_minions[m])
+                master.del_file(fpath, fname)
+            master.del_dir(obj_name)
 
 def get_keyboard_input(cur_dir):
     sys.stdout.write(bcolors.BOLD + bcolors.GREEN + '~' + cur_dir);
@@ -134,11 +148,11 @@ def main():
         elif args[0] == 'put':
             if len(args) > 1:
                 if len(args) == 3:
-                    put(master, args[1], args[2])
+                    put(master, cur_dir, args[1], args[2])
                     master.add_obj(cur_dir, args[2], 'file')
                 elif len(args) == 2:
                     fname = os.path.basename(args[1])
-                    put(master, args[1], fname)
+                    put(master, cur_dir, args[1], fname)
                     master.add_obj(cur_dir, fname, 'file')
                 else:
                     print "Too many arguments"
@@ -148,14 +162,15 @@ def main():
             obj_list = master.list(cur_dir)            
             for obj in obj_list:                    
                 if obj_list[obj] == 'file':
-                    s = master.get_file_size(obj)
+                    s = master.get_file_size(cur_dir + obj)
                     print Fore.YELLOW + obj + '\t\t' + str(s) + ' bytes'
                 else:
                     print Fore.CYAN + bcolors.BOLD + obj
         elif args[0] == 'mkdir':
             if len(args) > 1:
-                dirname = args[1]
-                master.add_obj(cur_dir, dirname)
+                dirname = args[1]                
+                if not master.add_obj(cur_dir, dirname):
+                    print "Directory already exists"
             else:
                 print "Directory name is not specified. Usage: mkdir <dirname>"
         elif args[0] == 'cd':
@@ -184,7 +199,7 @@ def main():
             print "Commands:"
             print "  ls - see the list of files and directories;"
             print "  mkdir - create a new directory. Usage: mkdir <dirname>"
-            print "  cd - open a directory. Usage: mkdir <dirname>"
+            print "  cd - open a directory. Usage: cd <dirname>"
             print "  del - delete a file or directory. Usage: del <dirname>/<filename>"
             print "  put - write a file in the current directory. Usage: put <filename> [new filename]"
             print "  get - download a file. Usage: get <filename>"
