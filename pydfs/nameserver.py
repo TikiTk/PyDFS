@@ -15,6 +15,7 @@ from functools import reduce
 import operator
 
 
+
 def int_handler(signal, frame):
     pickle.dump((Nameserver.file_table, Nameserver.block_mapping, Nameserver.file_sizes, Nameserver.directory_tree),
                 open('fs.img', 'wb'))
@@ -46,6 +47,18 @@ class Nameserver(rpyc.Service):
     replication_factor = 0
     file_sizes = {}
     directory_tree = {}
+
+    TOTAL_DISK_SPACE = 2000000000
+
+    def exposed_get_total_space(self):
+        return self.__class__.TOTAL_DISK_SPACE
+
+    def exposed_get_space_available(self):
+        occupied = 0
+        for value in self.__class__.file_sizes.values():
+            occupied = occupied + int(value)          
+        available = self.__class__.TOTAL_DISK_SPACE - occupied
+        return available
 
     def exposed_get_replication_factor(self):
         return self.replication_factor

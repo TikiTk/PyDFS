@@ -122,13 +122,32 @@ def get_keyboard_input(cur_dir):
     for part in parts:
         args.append(part.strip())
     return args
+    
+def check_free_diskspace(master, source):
+    return os.path.getsize(source) <= master.get_space_available()
 
+def print_free_diskspace(master, mode='-b'):
+    if mode == '-mb':
+        available_space = str(round(master.get_space_available() / 1000000.0, 2)) + ' MB'
+        total_space = str(round(master.get_total_space() / 1000000.0, 2)) + ' MB'
+    elif mode == '-b':
+        available_space = str(master.get_space_available()) + ' bytes'
+        total_space = str(master.get_total_space()) + ' bytes'
+    elif mode == '-gb':
+        available_space = str(round(master.get_space_available() / 1000000000.0, 2)) + ' GB'
+        total_space = str(round(master.get_total_space() / 1000000000.0, 2)) + ' GB'
+    else:
+        return
+    print "You have " + available_space + " free space out of " + total_space + " total disk space."
+    
 def main():
     con = rpyc.connect("localhost", port=2131)
     master = con.root
 
-    cur_dir = "/"
+    cur_dir = "/"  
+ 
     print "Client started. Use 'help' to list all available commands."
+    print_free_diskspace(master)
     args = get_keyboard_input(cur_dir)
     while args[0] != 'exit':
         if args[0] == 'get':
@@ -144,12 +163,18 @@ def main():
         elif args[0] == 'put':
             if len(args) > 1:
                 if len(args) == 3:
-                    put(master, cur_dir, args[1], args[2])
-                    master.add_obj(cur_dir, args[2], 'file')
+                    if check_free_diskspace(master, args[1]):
+                        put(master, cur_dir, args[1], args[2])
+                        master.add_obj(cur_dir, args[2], 'file')
+                    else:
+                        print "There is no enough space"
                 elif len(args) == 2:
-                    fname = os.path.basename(args[1])
-                    put(master, cur_dir, args[1], fname)
-                    master.add_obj(cur_dir, fname, 'file')
+                    if check_free_diskspace(master, args[1]):
+                        fname = os.path.basename(args[1])
+                        put(master, cur_dir, args[1], fname)
+                        master.add_obj(cur_dir, fname, 'file')
+                    else:
+                        print "There is no enough space"
                 else:
                     print "Too many arguments"
             else:
@@ -191,9 +216,16 @@ def main():
                 delete(master, cur_dir, args[1])
             else:
                 print "Directory or file name is not specified. Usage: del <dirname>/<filename>"
+        elif args[0] == 'space':
+            if len(args) > 1:
+                print_free_diskspace(master, args[1])
+            else:
+                print_free_diskspace(master)
+            
         elif args[0] == 'help':
             print "Commands:"
-            print "  ls - see the list of files and directories;"
+            print "  space - show available disk space. Arguments: -b in bytes, -mb in megabytes, -gb in gygabytes"
+            print "  ls - see the list of files and directories"
             print "  mkdir - create a new directory. Usage: mkdir <dirname>"
             print "  cd - open a directory. Usage: cd <dirname>"
             print "  del - delete a file or directory. Usage: del <dirname>/<filename>"
