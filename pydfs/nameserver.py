@@ -65,8 +65,8 @@ class Nameserver(rpyc.Service):
 
     def exposed_list(self, path):
         dirs = path.split('/')
-        while '' in dirs:
-            dirs.remove('')
+        dirs = filter(lambda dir: dir != '', dirs)
+
         dir_list = {}
         if path == '/':
             for obj, value in self.__class__.directory_tree.iteritems():
@@ -102,7 +102,7 @@ class Nameserver(rpyc.Service):
         child_directory = reduce(operator.getitem, dirs, self.__class__.directory_tree)
 
         if current_directory == '/':
-            return new_directory in self.__class__.directory_tree
+            return new_directory in self.__class__.directory_tree and self.directory_tree[new_directory] == 'dir'
         return new_directory in child_directory
 
     def exposed_add_obj(self, path, obj_name, obj_type='dir'):
@@ -112,7 +112,7 @@ class Nameserver(rpyc.Service):
         if obj_type == 'file':
             obj_to_add = {obj_name: 'file'}
         elif obj_type == 'dir':
-            obj_to_add = {obj_name: {'.':'self','..':'parent'}}
+            obj_to_add = {obj_name: {'.': 'self', '..': 'parent'}}
 
         if path == '/':
             self.__class__.directory_tree.update(obj_to_add)
@@ -143,12 +143,11 @@ class Nameserver(rpyc.Service):
 
         if fname in temp_file_table:
             del temp_file_table[fname]
-            self.__class__.file_table = temp_files_size
+            self.__class__.file_table = temp_file_table
 
         if fname in temp_dictionary:
             del temp_dictionary[fname]
             self.__class__.directory_tree = temp_dictionary
-
 
     def exposed_get_block_size(self):
         return self.__class__.block_size
@@ -163,9 +162,9 @@ class Nameserver(rpyc.Service):
         dirs = dirs.split('/')
         dirs = filter(lambda directory: directory != '', dirs)
         if dirs == '/':
-            return filename in self.__class__.directory_tree.update
-        reduce(operator.getitem, dirs, self.__class__.directory_tree)
-        return filename in self.__class__.file_table
+            return filename in self.__class__.directory_tree and self.__class__.directory_tree[filename] == 'file'
+        child_directory = reduce(operator.getitem, dirs, self.__class__.directory_tree)
+        return filename in child_directory
 
     def alloc_blocks(self, dest, num):
         blocks = []
