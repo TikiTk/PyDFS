@@ -47,6 +47,18 @@ class Nameserver(rpyc.Service):
     file_sizes = {}
     directory_tree = {}
 
+    TOTAL_DISK_SPACE = 2000000000
+
+    def exposed_get_total_space(self):
+        return self.__class__.TOTAL_DISK_SPACE
+
+    def exposed_get_space_available(self):
+        occupied = 0
+        for value in self.__class__.file_sizes.values():
+            occupied = occupied + int(value)
+        available = self.__class__.TOTAL_DISK_SPACE - occupied
+        return available
+
     def exposed_get_replication_factor(self):
         return self.replication_factor
 
@@ -59,14 +71,8 @@ class Nameserver(rpyc.Service):
     def exposed_set_new_minions(self, new_minion_dic={}):
         self.__class__.minions = new_minion_dic
 
-    def exposed_list_files(self):
-        files = self.__class__.file_table.keys()
-        return files
-
     def exposed_list(self, path):
-        dirs = path.split('/')
-        dirs = filter(lambda dir: dir != '', dirs)
-
+        dirs = self.get_dirs_in_path(path)
         dir_list = {}
         if path == '/':
             for obj, value in self.__class__.directory_tree.iteritems():
@@ -74,56 +80,53 @@ class Nameserver(rpyc.Service):
                     dir_list[obj] = 'dir'
                 else:
                     dir_list[obj] = 'file'
-        else:
-            dir_content = reduce(operator.getitem, dirs, self.__class__.directory_tree)
+        else:            
+            dir_content = reduce(operator.getitem, dirs, self.__class__.directory_tree)            
             for obj, value in dir_content.iteritems():
                 if value != 'file':
                     dir_list[obj] = 'dir'
                 else:
                     dir_list[obj] = 'file'
-        return dir_list
+        return dir_list        
 
     def exposed_read(self, fname):
         self.check_connection_to_storageservers(self.minions)
         mapping = self.__class__.file_table[fname]
         return mapping
 
-    def exposed_write(self, filename, size):
+    def exposed_write(self, dest, size):
+        if self.exists(dest):
+            return None
+        else:
+            self.check_connection_to_storageservers(self.minions)
+            self.__class__.file_table[dest] = []
+            self.__class__.file_sizes[dest] = size
 
-        self.check_connection_to_storageservers(self.minions)
-        self.__class__.file_table[filename] = []
-        self.__class__.file_sizes[filename] = size
-        num_blocks = self.calc_num_blocks(size)
-        return self.alloc_blocks(filename, num_blocks)
-
-    def exposed_check_if_directory_exists(self, current_directory, new_directory):
-        dirs = current_directory.split('/')
-        dirs = filter(lambda directory: directory != '', dirs)
-        child_directory = reduce(operator.getitem, dirs, self.__class__.directory_tree)
-
-        if current_directory == '/':
-            return new_directory in self.__class__.directory_tree and self.directory_tree[new_directory] == 'dir'
-        return new_directory in child_directory
+            num_blocks = self.calc_num_blocks(size)
+            blocks = self.alloc_blocks(dest, num_blocks)
+            return blocks
 
     def exposed_add_obj(self, path, obj_name, obj_type='dir'):
-        dirs = path.split('/')
-        dirs = filter(lambda directory: directory != '', dirs)
-
+        dirs = self.get_dirs_in_path(path)
+        
         if obj_type == 'file':
             obj_to_add = {obj_name: 'file'}
-        elif obj_type == 'dir':
-            obj_to_add = {obj_name: {'.': 'self', '..': 'parent'}}
+        elif obj_type == 'dir' and not self.dir_exists(path, obj_name):
+            obj_to_add = {obj_name: {'.':'self','..':'parent'}}
+        else:
+            return False
 
         if path == '/':
             self.__class__.directory_tree.update(obj_to_add)
         else:
             reduce(operator.getitem, dirs, self.__class__.directory_tree).update(obj_to_add)
+        return True
 
     def exposed_get_file_table_entry(self, path, fname):
         self.check_connection_to_storageservers(self.minions)
-        flist = Nameserver.exposed_list(self, path)
-        if (fname in self.__class__.file_table) and (fname in flist):
-            return self.__class__.file_table[fname]
+        full_name = path + fname
+        if full_name in self.__class__.file_table:
+            return self.__class__.file_table[full_name]
         else:
             return None
 
@@ -133,21 +136,33 @@ class Nameserver(rpyc.Service):
         else:
             return None
 
-    def exposed_del_file(self, fname):
-        temp_files_size = deepcopy(self.__class__.file_sizes)
-        temp_file_table = deepcopy(self.__class__.file_table)
-        temp_dictionary = deepcopy(self.__class__.directory_tree)
-        if fname in temp_files_size:
-            del temp_files_size[fname]
-            self.__class__.file_sizes = temp_files_size
+    def exposed_del_file(self, path, fname):
+        full_name = path + fname
+        if full_name in self.__class__.file_sizes:
+            del self.__class__.file_sizes[full_name]
 
-        if fname in temp_file_table:
-            del temp_file_table[fname]
-            self.__class__.file_table = temp_file_table
+        if full_name in self.__class__.file_table:
+            del self.__class__.file_table[full_name]
 
-        if fname in temp_dictionary:
-            del temp_dictionary[fname]
-            self.__class__.directory_tree = temp_dictionary
+        dirs = self.get_dirs_in_path(path)
+        if path == '/':
+            if fname in self.__class__.directory_tree:
+                del self.__class__.directory_tree[fname]
+        else:
+            fdir = reduce(operator.getitem, dirs, self.__class__.directory_tree)
+            if fname in fdir:
+                del fdir[fname]
+
+    def exposed_del_dir(self, dirname):
+        if dirname in self.__class__.directory_tree:
+            del self.__class__.directory_tree[dirname]
+
+    def exposed_get_files_in_dir(self, path):
+        files = {}
+        for file in self.__class__.file_table:
+            if file.startswith(path):
+                files.update({file:self.__class__.file_table[file]})
+        return files
 
     def exposed_get_block_size(self):
         return self.__class__.block_size
@@ -155,16 +170,26 @@ class Nameserver(rpyc.Service):
     def exposed_get_storageservers(self):
         return self.__class__.minions
 
+
+
+    def get_dirs_in_path(self, path):
+        dirs = path.split('/')
+        while '' in dirs:
+            dirs.remove('')
+        return dirs
+
     def calc_num_blocks(self, size):
         return int(math.ceil(float(size) / self.__class__.block_size))
 
-    def exposed_exists(self, filename, dirs):
-        dirs = dirs.split('/')
-        dirs = filter(lambda directory: directory != '', dirs)
-        if dirs == '/':
-            return filename in self.__class__.directory_tree and self.__class__.directory_tree[filename] == 'file'
-        child_directory = reduce(operator.getitem, dirs, self.__class__.directory_tree)
-        return filename in child_directory
+    def exists(self, file):
+        return file in self.__class__.file_table
+
+    def dir_exists(self, path, dirname):
+        dirs = self.get_dirs_in_path(path)
+        if path == '/':
+            return dirname in self.__class__.directory_tree
+        else:
+            return dirname in reduce(operator.getitem, dirs, self.__class__.directory_tree)
 
     def alloc_blocks(self, dest, num):
         blocks = []
