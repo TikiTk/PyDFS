@@ -8,6 +8,16 @@ import collections
 
 import rpyc
 
+FILENAME_LENGTH = 20
+DIRNAME_LENGTH = 20
+
+def check_name_length(name,length):
+    if len(name) > length:
+        print "Name can not be more than " + str(length) + " characters."
+        return False
+    else:
+        return True
+
 init(autoreset=True)
 class bcolors:
     BLUE = '\033[94m'
@@ -137,6 +147,7 @@ def print_free_diskspace(master, mode='-b'):
         available_space = str(round(master.get_space_available() / 1000000000.0, 2)) + ' GB'
         total_space = str(round(master.get_total_space() / 1000000000.0, 2)) + ' GB'
     else:
+        print "Wrong argumetns. Usage: space [-b/-mb/-gb]"
         return
     print "You have " + available_space + " free space out of " + total_space + " total disk space."
     
@@ -162,12 +173,16 @@ def main():
                 print "Filename is not specified. Usage: cat <filename>"
         elif args[0] == 'put':
             if len(args) > 1:
-                if len(args) == 3:
-                    if check_free_diskspace(master, args[1]):
-                        put(master, cur_dir, args[1], args[2])
-                        master.add_obj(cur_dir, args[2], 'file')
-                    else:
-                        print "There is no enough space"
+                if len(args) == 3:                    
+                    if check_name_length(args[2], FILENAME_LENGTH):
+                        if not '/' in args[2]:
+                            if check_free_diskspace(master, args[1]):
+                                put(master, cur_dir, args[1], args[2])
+                                master.add_obj(cur_dir, args[2], 'file')
+                            else:
+                                print "There is no enough space"
+                        else:
+                            print "Wrong input. Filename can not contain '/'."                    
                 elif len(args) == 2:
                     if check_free_diskspace(master, args[1]):
                         fname = os.path.basename(args[1])
@@ -189,9 +204,13 @@ def main():
                     print Fore.CYAN + bcolors.BOLD + obj
         elif args[0] == 'mkdir':
             if len(args) > 1:
-                dirname = args[1]                
-                if not master.add_obj(cur_dir, dirname):
-                    print "Directory already exists"
+                if check_name_length(args[1], DIRNAME_LENGTH):
+                    if not '/' in args[1]:
+                        dirname = args[1]                
+                        if not master.add_obj(cur_dir, dirname):
+                            print "Directory already exists"
+                    else:
+                        print "Wrong input. Directory name can not contain '/'."
             else:
                 print "Directory name is not specified. Usage: mkdir <dirname>"
         elif args[0] == 'cd':

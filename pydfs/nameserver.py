@@ -73,9 +73,7 @@ class Nameserver(rpyc.Service):
         self.__class__.minions = new_minion_dic
 
     def exposed_list(self, path):
-        dirs = path.split('/')
-        while '' in dirs:
-            dirs.remove('')
+        dirs = self.get_dirs_in_path(path)
         dir_list = {}
         if path == '/':
             for obj, value in self.__class__.directory_tree.iteritems():
