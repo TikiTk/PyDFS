@@ -143,17 +143,17 @@ def delete_file(master, path, fname):
 def delete(master, path, obj_name):
     try:
         obj_list = master.list(path)
-
         if obj_name in obj_list:
             if obj_list[obj_name] == 'file':
                 delete_file(master, path, obj_name)
             elif obj_list[obj_name] == 'dir' and obj_name != '.' and obj_name != '..':
                 files = master.get_files_in_dir(path + obj_name)
-                for file in files:
-                    fpath, fname = file.rsplit('/',1)
-                    fpath = fpath + '/'
-                    delete_file(master, fpath, fname)
-                master.del_dir(obj_name)
+                if files:
+                    for file in files:
+                        fpath, fname = file.rsplit('/',1)
+                        fpath = fpath + '/'
+                        delete_file(master, fpath, fname)
+                master.del_dir(path, obj_name)
         logging.info("deleted object from storage " + path + " " + obj_name)
     except(RuntimeError, TypeError, NameError):
         message = RuntimeError.message or TypeError.message or NameError.message

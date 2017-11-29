@@ -158,9 +158,15 @@ class Nameserver(rpyc.Service):
             if fname in fdir:
                 del fdir[fname]
 
-    def exposed_del_dir(self, dirname):
-        if dirname in self.__class__.directory_tree:
-            del self.__class__.directory_tree[dirname]
+    def exposed_del_dir(self, path, dirname):
+        dirs = self.get_dirs_in_path(path)
+        if path == '/':
+            if dirname in self.__class__.directory_tree:
+                del self.__class__.directory_tree[dirname]
+        else:
+            dir_parent = reduce(operator.getitem, dirs, self.__class__.directory_tree)
+            if dirname in dir_parent:
+                del dir_parent[dirname]
 
     def exposed_get_files_in_dir(self, path):
         files = {}
