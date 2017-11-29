@@ -1,11 +1,8 @@
 import os
 import sys
-
-from termcolor import colored
-from colorama import Fore, Back, init, Style
-
-import collections
-
+from colorama import Fore, init
+import logging
+import time
 import rpyc
 
 init(autoreset=True)
@@ -18,41 +15,66 @@ class bcolors:
     BOLD = '\033[1m'
 
 def send_to_storage(block_uuid, data, minions):
-    print "sending: " + str(block_uuid) + str(minions)
-    minion = minions[0]
-    minions = minions[1:]
-    host, port = minion
 
-    con = rpyc.connect(host, port=port)
-    minion = con.root.Storage()
-    minion.put(block_uuid, data, minions)
+    try:
+        print "sending: " + str(block_uuid) + str(minions)
+        minion = minions[0]
+        minions = minions[1:]
+        host, port = minion
+
+        con = rpyc.connect(host, port=port)
+        minion = con.root.Storage()
+        minion.put(block_uuid, data, minions)
+        logging.info("Blocks written to storage "+time.time())
+    except (RuntimeError, TypeError, NameError):
+        message = RuntimeError.message or TypeError.message or NameError.message
+        logging.error(message + " while writing to storage "+time.time())
+
 
 def read_from_storage(block_uuid, minion):
-    host, port = minion
-    con = rpyc.connect(host, port=port)
-    minion = con.root.Storage()
-    return minion.get(block_uuid)
+
+    try:
+        host, port = minion
+        con = rpyc.connect(host, port=port)
+        minion = con.root.Storage()
+        return minion.get(block_uuid)
+    except(RuntimeError, TypeError, NameError):
+        message = RuntimeError.message or TypeError.message or NameError.message
+        logging.error(message + " while reading from storage " + time.time())
+
 
 def delete_from_storage(block_uuid, minion):
-    host, port = minion
-    con = rpyc.connect(host, port=port)
-    minion = con.root.Storage()
-    return minion.delete(block_uuid)
 
+    try:
+        host, port = minion
+        con = rpyc.connect(host, port=port)
+        minion = con.root.Storage()
+        logging.info("deleted object from storage "+str(block_uuid))
+        return minion.delete(block_uuid)
+
+    except(RuntimeError, TypeError, NameError):
+        message = RuntimeError.message or TypeError.message or NameError.message
+        logging.error(message + " while writing to storage " + time.time())
 
 def put(master, source, filename,dir):
-    size = os.path.getsize(source)
-    if master.exists(filename,dir):
-        print 'File exists'
-        return
-    else:
-        blocks = master.write(filename, size)
-        with open(source) as f:
-            for b in blocks:
-                data = f.read(master.get_block_size())
-                block_uuid = b[0]
-                minions = [master.get_list_of_minions()[_] for _ in b[1]]
-                send_to_storage(block_uuid, data, minions)
+
+    try:
+        size = os.path.getsize(source)
+        if master.exists(filename,dir):
+            print 'File exists'
+            return
+        else:
+            blocks = master.write(filename, size)
+            with open(source) as f:
+                for b in blocks:
+                    data = f.read(master.get_block_size())
+                    block_uuid = b[0]
+                    minions = [master.get_list_of_minions()[_] for _ in b[1]]
+                    send_to_storage(block_uuid, data, minions)
+        logging.info(filename + "successfully put in storage "+time.time())
+    except (RuntimeError, TypeError, NameError):
+        message = RuntimeError.message or TypeError.message or NameError.message
+        logging.error(message + " while putting to storage " + time.time())
 
 
 def get(master, path, fname, mode):
