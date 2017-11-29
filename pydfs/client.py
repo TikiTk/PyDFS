@@ -12,14 +12,12 @@ import rpyc
 FILENAME_LENGTH = 20
 DIRNAME_LENGTH = 20
 
-
-def check_name_length(name, length):
+def check_name_length(name,length):
     if len(name) > length:
         print "Name can not be more than " + str(length) + " characters."
         return False
     else:
         return True
-
 
 init(autoreset=True)
 
@@ -31,7 +29,6 @@ class bcolors:
     FAIL = '\033[91m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
-
 
 def send_to_storage(block_uuid, data, minions):
     try:
@@ -132,9 +129,7 @@ def get(master, path, fname, mode):
         logging.info("successfully get from storage " + path + " " + fname)
     except (RuntimeError, TypeError, NameError):
         message = RuntimeError.message or TypeError.message or NameError.message
-        logging.error(
-            message + " while getting from storage " + str(time.strftime("%d/%m/%Y") + time.strftime("%H:%M:%S")))
-
+        logging.error(message + " while getting from storage " + str(time.strftime("%d/%m/%Y") + time.strftime("%H:%M:%S")))
 
 def delete_file(master, path, fname):
     try:
@@ -158,22 +153,22 @@ def delete_file(master, path, fname):
 def delete(master, path, obj_name):
     try:
         obj_list = master.list(path)
-
         if obj_name in obj_list:
             if obj_list[obj_name] == 'file':
                 delete_file(master, path, obj_name)
             elif obj_list[obj_name] == 'dir' and obj_name != '.' and obj_name != '..':
                 files = master.get_files_in_dir(path + obj_name)
-                for file in files:
-                    fpath, fname = file.rsplit('/', 1)
-                    fpath = fpath + '/'
-                    delete_file(master, fpath, fname)
-                master.del_dir(obj_name)
+                if files:
+                    for file in files:
+                        fpath, fname = file.rsplit('/',1)
+                        fpath = fpath + '/'
+                        delete_file(master, fpath, fname)
+                master.del_dir(path, obj_name)
         logging.info("deleted object from storage " + path + " " + obj_name)
     except(RuntimeError, TypeError, NameError):
         message = RuntimeError.message or TypeError.message or NameError.message
-        logging.error(
-            message + " while deleting from storage " + str(time.strftime("%d/%m/%Y") + time.strftime("%H:%M:%S")))
+        logging.error(message + " while deleting from storage " + str(time.strftime("%d/%m/%Y") + time.strftime("%H:%M:%S")))
+
 
 
 def get_keyboard_input(cur_dir):
@@ -186,12 +181,10 @@ def get_keyboard_input(cur_dir):
     for part in parts:
         args.append(part.strip())
     return args
-
-
+    
 def check_free_diskspace(master, source):
     if os.path.isfile(source):
         return os.path.getsize(source) <= master.get_space_available()
-
 
 def print_free_diskspace(master, mode='-b'):
     if mode == '-mb':
@@ -208,19 +201,18 @@ def print_free_diskspace(master, mode='-b'):
         return
     print "You have " + available_space + " free space out of " + total_space + " total disk space."
 
-
 def check_dir(cur_dir, dirname):
     d_path = ''
     d_name = ''
-    if dirname.startswith('/'):
+    if dirname.startswith('/'):        
         d_path, d_name = dirname.rsplit('/', 1)
-        d_path = d_path + '/'
+        d_path = d_path + '/'       
     elif dirname.startswith('./'):
         dirname = cur_dir + dirname[2:]
         d_path, d_name = dirname.rsplit('/', 1)
-        d_path = d_path + '/'
+        d_path = d_path + '/'       
     elif dirname.startswith('../'):
-        a, b, c = cur_dir.rsplit('/', 2)
+        a, b, c = cur_dir.rsplit('/', 2)        
         dirname = a + dirname[2:]
         d_path, d_name = dirname.rsplit('/', 1)
         d_path = d_path + '/'
@@ -228,12 +220,11 @@ def check_dir(cur_dir, dirname):
         if '/' in dirname:
             dirname = cur_dir + dirname
             d_path, d_name = dirname.rsplit('/', 1)
-            d_path = d_path + '/'
+            d_path = d_path + '/'        
         else:
             d_path = cur_dir
             d_name = dirname
     return d_path, d_name
-
 
 def main():
     logging.info("Logging started " + str(time.strftime("%d/%m/%Y") + time.strftime("%H:%M:%S")))
@@ -247,7 +238,6 @@ def main():
             time.strftime("%d/%m/%Y") + time.strftime("%H:%M:%S")))
 
     cur_dir = "/"
-
     print "Client started. Use 'help' to list all available commands."
     print_free_diskspace(master)
     args = get_keyboard_input(cur_dir)
@@ -269,7 +259,7 @@ def main():
         elif args[0] == 'put':
             logging.info("Writing file " + args[1] + " @ " + str(time.strftime("%d/%m/%Y") + time.strftime("%H:%M:%S")))
             if len(args) > 1:
-                if len(args) == 3:
+                if len(args) == 3:                    
                     if check_name_length(args[2], FILENAME_LENGTH):
                         if not '/' in args[2]:
                             if os.path.isfile(args[1]):
@@ -313,7 +303,7 @@ def main():
             if len(args) > 1:
                 if check_name_length(args[1], DIRNAME_LENGTH):
                     if not '/' in args[1]:
-                        dirname = args[1]
+                        dirname = args[1]                
                         if not master.add_obj(cur_dir, dirname):
                             print "Directory already exists"
                     else:
