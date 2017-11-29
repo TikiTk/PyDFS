@@ -68,8 +68,7 @@ def get(master, path, fname, mode):
     file_table = master.get_file_table_entry(path, fname)
     if not file_table:
         print "No such file"
-        return
-    print file_table
+        return    
     flag = 0
     download_dir = os.getcwd() + '/files'
     for block in file_table:
@@ -93,7 +92,9 @@ def get(master, path, fname, mode):
                         break                    
                     else:
                         print "No blocks found. Possibly a corrupt file"
-                print "Done"
+    print "\nDone."
+    if mode == 'download':
+        print "File has been downloaded in ./files directory"
 
 def delete_file(master, path, fname):
     file_table = master.get_file_table_entry(path, fname)                
@@ -134,7 +135,8 @@ def get_keyboard_input(cur_dir):
     return args
     
 def check_free_diskspace(master, source):
-    return os.path.getsize(source) <= master.get_space_available()
+    if os.path.isfile(source):
+        return os.path.getsize(source) <= master.get_space_available()
 
 def print_free_diskspace(master, mode='-b'):
     if mode == '-mb':
@@ -150,7 +152,32 @@ def print_free_diskspace(master, mode='-b'):
         print "Wrong argumetns. Usage: space [-b/-mb/-gb]"
         return
     print "You have " + available_space + " free space out of " + total_space + " total disk space."
-    
+
+def check_dir(cur_dir, dirname):
+    d_path = ''
+    d_name = ''
+    if dirname.startswith('/'):        
+        d_path, d_name = dirname.rsplit('/', 1)
+        d_path = d_path + '/'       
+    elif dirname.startswith('./'):
+        dirname = cur_dir + dirname[2:]
+        d_path, d_name = dirname.rsplit('/', 1)
+        d_path = d_path + '/'       
+    elif dirname.startswith('../'):
+        a, b, c = cur_dir.rsplit('/', 2)        
+        dirname = a + dirname[2:]
+        d_path, d_name = dirname.rsplit('/', 1)
+        d_path = d_path + '/'
+    else:
+        if '/' in dirname:
+            dirname = cur_dir + dirname
+            d_path, d_name = dirname.rsplit('/', 1)
+            d_path = d_path + '/'        
+        else:
+            d_path = cur_dir
+            d_name = dirname
+    return d_path, d_name
+
 def main():
     con = rpyc.connect("localhost", port=2131)
     master = con.root
@@ -176,20 +203,26 @@ def main():
                 if len(args) == 3:                    
                     if check_name_length(args[2], FILENAME_LENGTH):
                         if not '/' in args[2]:
-                            if check_free_diskspace(master, args[1]):
-                                put(master, cur_dir, args[1], args[2])
-                                master.add_obj(cur_dir, args[2], 'file')
+                            if os.path.isfile(args[1]):
+                                if check_free_diskspace(master, args[1]):
+                                    put(master, cur_dir, args[1], args[2])
+                                    master.add_obj(cur_dir, args[2], 'file')
+                                else:
+                                    print "There is no enough space"
                             else:
-                                print "There is no enough space"
+                                print "There is no such file"
                         else:
                             print "Wrong input. Filename can not contain '/'."                    
                 elif len(args) == 2:
-                    if check_free_diskspace(master, args[1]):
-                        fname = os.path.basename(args[1])
-                        put(master, cur_dir, args[1], fname)
-                        master.add_obj(cur_dir, fname, 'file')
+                    if os.path.isfile(args[1]):
+                        if check_free_diskspace(master, args[1]):
+                            fname = os.path.basename(args[1])
+                            put(master, cur_dir, args[1], fname)
+                            master.add_obj(cur_dir, fname, 'file')
+                        else:
+                            print "There is no enough space"
                     else:
-                        print "There is no enough space"
+                        print "There is no such file"
                 else:
                     print "Too many arguments"
             else:
@@ -216,20 +249,19 @@ def main():
         elif args[0] == 'cd':
             if len(args) > 1:
                 dirname = args[1]
-                obj_list = master.list(cur_dir)
-                if dirname in obj_list:
-                    for obj in obj_list:                    
-                        if obj == dirname and obj_list[obj] == 'dir' and obj != '.' and obj != '..' :
-                            cur_dir = cur_dir + obj + '/'
-                            break
-                        if dirname == '..':                        
-                            a,b,c = cur_dir.rsplit('/',2)                        
-                            cur_dir = cur_dir[:-(len(b)+ 1)]
-                            break
+                if dirname == '..':                        
+                    a,b,c = cur_dir.rsplit('/',2)                        
+                    cur_dir = cur_dir[:-(len(b)+ 1)]
                 else:
-                    print "No such directory"              
+                    d_path, d_name = check_dir(cur_dir, dirname)
+                    obj_list = master.list(d_path)                    
+                    if obj_list and d_name in obj_list:
+                        if obj_list[d_name] == 'dir' and d_name != '.':
+                            cur_dir = d_path + d_name + '/'                            
+                    else:
+                        print "No such directory"              
             else:
-                print "Directory name is not specified. Usage: cd <dirname>"
+                cur_dir = '/'
         elif args[0] == 'del':
             if len(args) > 1:
                 delete(master, cur_dir, args[1])

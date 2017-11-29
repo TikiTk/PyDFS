@@ -81,7 +81,12 @@ class Nameserver(rpyc.Service):
                     dir_list[obj] = 'dir'
                 else:
                     dir_list[obj] = 'file'
-        else:            
+        else:
+            sub_path = '/'
+            for d in dirs:                
+                if not self.dir_exists(sub_path, d):
+                    return
+                sub_path = sub_path + d + '/'      
             dir_content = reduce(operator.getitem, dirs, self.__class__.directory_tree)            
             for obj, value in dir_content.iteritems():
                 if value != 'file':
