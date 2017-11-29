@@ -1,9 +1,10 @@
-import rpyc
 import uuid
 import os
 import sys
 import pickle
 import signal
+
+import rpyc
 from pathlib2 import Path
 
 from rpyc.utils.server import ThreadedServer
@@ -45,7 +46,7 @@ def get_ip_port_config(default_ip, default_port):
     user_input = sys.stdin.readline().strip()
     port = int(user_input) if user_input else default_port
 
-    return addr, port    
+    return addr, port
 
 def int_handler(signal, frame):
     pickle.dump((n_addr, n_port, s_addr, s_port),
@@ -101,7 +102,7 @@ if __name__ == "__main__":
             open('last_storage.conf', 'rb'))
     else:
         print "Nameserver configuration:"
-        n_addr, n_port = get_ip_port_config('localhost', 2131)    
+        n_addr, n_port = get_ip_port_config('localhost', 2131)
         print ""
 
         print "Storage server configuration: "
@@ -112,7 +113,7 @@ if __name__ == "__main__":
 
     try:
         con = rpyc.connect(n_addr, n_port)
-        master = con.root        
+        master = con.root
         setup(s_addr, s_port, master)
 
     except Exception as message:
