@@ -54,7 +54,7 @@ def delete_from_storage(block_uuid, minion):
 
     except(RuntimeError, TypeError, NameError):
         message = RuntimeError.message or TypeError.message or NameError.message
-        logging.error(message + " while writing to storage " + time.time())
+        logging.error(message + " while deleting from storage " + time.time())
 
 def put(master, source, filename,dir):
 
@@ -78,53 +78,65 @@ def put(master, source, filename,dir):
 
 
 def get(master, path, fname, mode):
-    file_table = master.get_file_table_entry(path, fname)
-    if not file_table:
-        print "No such file"
-        return
-    print file_table
-    flag = 0
-    download_dir = os.getcwd() + '/files'
-    for block in file_table:
-        for i in range(len(block[1])):
-            if block[1][i] in master.get_list_of_minions():
-                for m in master.get_list_of_minions():
-                    data = read_from_storage(block[0], master.get_list_of_minions()[m])
-                    if data:
-                        if mode == 'download':
-                            if not os.path.isdir(download_dir): os.mkdir(download_dir)
-                            if flag:
+    try:
+        file_table = master.get_file_table_entry(path, fname)
+        if not file_table:
+            print "No such file"
+            return
+        print file_table
+        flag = 0
+        download_dir = os.getcwd() + '/files'
+        for block in file_table:
+            for i in range(len(block[1])):
+                if block[1][i] in master.get_list_of_minions():
+                    for m in master.get_list_of_minions():
+                        data = read_from_storage(block[0], master.get_list_of_minions()[m])
+                        if data:
+                            if mode == 'download':
+                                if not os.path.isdir(download_dir): os.mkdir(download_dir)
+                                if flag:
 
-                                with open(download_dir + '/' + fname, 'a') as f:
-                                    f.write(data)
-                            else:
-                                with open(download_dir + '/' + fname, 'w') as f:
-                                    f.write(data)
-                                    flag = 1
-                        elif mode == 'open':
-                            sys.stdout.write(data)
-                        break                    
-                    else:
-                        print "No blocks found. Possibly a corrupt file"
-                print "Done"
+                                    with open(download_dir + '/' + fname, 'a') as f:
+                                        f.write(data)
+                                else:
+                                    with open(download_dir + '/' + fname, 'w') as f:
+                                        f.write(data)
+                                        flag = 1
+                            elif mode == 'open':
+                                sys.stdout.write(data)
+                            break
+                        else:
+                            print "No blocks found. Possibly a corrupt file"
+                    print "Done"
+        logging.info("successfully get from storage " + path +" "+ fname)
+    except (RuntimeError, TypeError, NameError):
+        message = RuntimeError.message or TypeError.message or NameError.message
+        logging.error(message + " while getting from storage " + time.time())
+
 
 def delete(master, path, obj_name):
-    obj_list = master.list(path)
-    if obj_name in obj_list:
-        if obj_list[obj_name] == 'file':
-            file_table = master.get_file_table_entry(path, obj_name)
-            if not file_table:
-                print "No such file"
-                return
-            for block in file_table:
-                for i in range(len(block[1])):
-                    if block[1][i] in master.get_list_of_minions():
-                        active_minions = master.get_list_of_minions()
-                        for m in active_minions:
-                            delete_from_storage(block[0], active_minions[m])
-            master.del_file(obj_name)
-        elif obj_list[obj_name] == 'dir' and obj_name != '.' and obj_name != '..':
-            pass
+    try:
+        obj_list = master.list(path)
+        if obj_name in obj_list:
+            if obj_list[obj_name] == 'file':
+                file_table = master.get_file_table_entry(path, obj_name)
+                if not file_table:
+                    print "No such file"
+                    return
+                for block in file_table:
+                    for i in range(len(block[1])):
+                        if block[1][i] in master.get_list_of_minions():
+                            active_minions = master.get_list_of_minions()
+                            for m in active_minions:
+                                delete_from_storage(block[0], active_minions[m])
+                master.del_file(obj_name)
+            elif obj_list[obj_name] == 'dir' and obj_name != '.' and obj_name != '..':
+                pass
+        logging.info("deleted object from storage " + path + " " + obj_name)
+    except(RuntimeError, TypeError, NameError):
+        message = RuntimeError.message or TypeError.message or NameError.message
+        logging.error(message + " while deleting from storage " + time.time())
+
 
 def get_keyboard_input(cur_dir):
     sys.stdout.write(bcolors.BOLD + bcolors.GREEN + '~' + cur_dir);
