@@ -1,12 +1,8 @@
-import uuid
 import os
-import sys
 import pickle
 import signal
-
+import sys
 import rpyc
-from pathlib2 import Path
-
 from rpyc.utils.server import ThreadedServer
 
 DATA_DIR = "/tmp/storage/"
@@ -34,24 +30,30 @@ def setup(host, ip, master):
         current_minions_dictionary[current_size_of_dictionary + 1] = new_minion
         master.set_new_minions(current_minions_dictionary)
         replication_factor = master.get_replication_factor()
-        master.set_replication_factor(replication_factor+1)
+        master.set_replication_factor(replication_factor + 1)
         print "New storage server added " + str(host) + " : " + str(ip)
         return
+
+
 def get_ip_port_config(default_ip, default_port):
-    sys.stdout.write('Type IP-address (default is ' + default_ip + '): '); sys.stdout.flush()
+    sys.stdout.write('Type IP-address (default is ' + default_ip + '): ');
+    sys.stdout.flush()
     user_input = sys.stdin.readline().strip()
     addr = user_input if user_input else default_ip
 
-    sys.stdout.write('Type a port (default is ' + str(default_port) + '): '); sys.stdout.flush()
+    sys.stdout.write('Type a port (default is ' + str(default_port) + '): ');
+    sys.stdout.flush()
     user_input = sys.stdin.readline().strip()
     port = int(user_input) if user_input else default_port
 
     return addr, port
 
+
 def int_handler(signal, frame):
     pickle.dump((n_addr, n_port, s_addr, s_port),
                 open('last_storage.conf', 'wb'))
     sys.exit(0)
+
 
 class StorageService(rpyc.Service):
     @property
@@ -95,7 +97,6 @@ class StorageService(rpyc.Service):
 
 if __name__ == "__main__":
     if not os.path.isdir(DATA_DIR): os.mkdir(DATA_DIR)
-
 
     if os.path.isfile('last_storage.conf'):
         n_addr, n_port, s_addr, s_port = pickle.load(
