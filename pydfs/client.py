@@ -254,7 +254,7 @@ def int_handler(signal, frame):
                 open('client_last.conf', 'wb'))
     sys.exit(0)
 
-def main():
+def main(n_addr,n_port):
     logging.basicConfig(filename='clientlog.log', level=logging.INFO)
     logging.info("Logging started " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
 
@@ -264,7 +264,7 @@ def main():
     
 
     try:
-        con = rpyc.connect("localhost", port=2131)
+        con = rpyc.connect(n_addr, n_port)
         master = con.root
         logging.info("Connection to master established")
     except(NameError, RuntimeError, TypeError):
@@ -415,4 +415,4 @@ if __name__ == "__main__":
 
     signal.signal(signal.SIGINT, int_handler)
 
-    main()
+    main(n_addr, n_port)
