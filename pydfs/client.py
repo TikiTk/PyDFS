@@ -87,15 +87,18 @@ def put(master, path, source, dest):
                     block_uuid = b[0]
                     minions = [master.get_list_of_minions()[_] for _ in b[1]]
                     send_to_storage(block_uuid, data, minions)
-
+            return True
         else:
-            print "File already exists"
+            if master.storages_available():
+                print "File already exists"
+            else:
+                print "No storage is available right now. Try again later"
+            return False
         logging.info(
             dest + " successfully put in storage " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
     except (RuntimeError, TypeError, NameError):
         message = RuntimeError.message or TypeError.message or NameError.message
-        logging.error(
-            message + " while putting to storage " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
+        logging.error(message + " while putting to storage " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
 
 
 def get(master, path, fname, mode):
@@ -258,11 +261,6 @@ def main(n_addr,n_port):
     logging.basicConfig(filename='clientlog.log', level=logging.INFO)
     logging.info("Logging started " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
 
-    # n_addr = ''
-    # n_port = 0
-
-    
-
     try:
         con = rpyc.connect(n_addr, n_port)
         master = con.root
@@ -300,8 +298,8 @@ def main(n_addr,n_port):
                         if not '/' in args[2]:
                             if os.path.isfile(args[1]):
                                 if check_free_diskspace(master, args[1]):
-                                    put(master, cur_dir, args[1], args[2])
-                                    master.add_obj(cur_dir, args[2], 'file')
+                                    if put(master, cur_dir, args[1], args[2]):
+                                        master.add_obj(cur_dir, args[2], 'file')
                                 else:
                                     print "There is no enough space"
                                     logging.info("There is no enough space " + +str(

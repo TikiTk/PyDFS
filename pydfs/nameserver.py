@@ -98,7 +98,8 @@ class Nameserver(rpyc.Service):
         if self.exists(dest):
             return None
         else:
-            self.check_connection_to_storageservers(self.minions)
+            if not self.check_connection_to_storageservers(self.minions):
+                return
             self.__class__.file_table[dest] = []
             self.__class__.file_sizes[dest] = size
 
@@ -199,7 +200,9 @@ class Nameserver(rpyc.Service):
         blocks = []
         for i in range(0, num):
             block_uuid = uuid.uuid1()
-            nodes_ids = random.sample(self.__class__.minions.keys(), self.__class__.replication_factor)
+            if not len(self.__class__.minions.keys()) > 0:
+                return
+            nodes_ids = [1] #random.sample(self.__class__.minions.keys(), self.__class__.replication_factor)
             blocks.append((block_uuid, nodes_ids))
 
             self.__class__.file_table[dest].append((block_uuid, nodes_ids))
@@ -214,6 +217,9 @@ class Nameserver(rpyc.Service):
             return True  # server has a problem
         else:
             return False  # server works fine
+
+    def exposed_storages_available(self):
+        return self.check_connection_to_storageservers(self.minions)
 
     def check_connection_to_storageservers(self, dictionary_of_minions):
 
