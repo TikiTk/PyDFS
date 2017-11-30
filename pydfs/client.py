@@ -8,6 +8,8 @@ from colorama import Fore, Back, init, Style
 import collections
 
 import rpyc
+import pickle
+import signal
 
 FILENAME_LENGTH = 20
 DIRNAME_LENGTH = 20
@@ -228,9 +230,31 @@ def check_dir(cur_dir, dirname):
             d_name = dirname
     return d_path, d_name
 
+def get_ip_port_config(default_ip, default_port):
+    sys.stdout.write('Type IP-address (default is ' + default_ip + '): '); sys.stdout.flush()
+    user_input = sys.stdin.readline().strip()
+    addr = user_input if user_input else default_ip
+
+    sys.stdout.write('Type a port (default is ' + str(default_port) + '): '); sys.stdout.flush()
+    user_input = sys.stdin.readline().strip()
+    port = int(user_input) if user_input else default_port
+
+    return addr, port
+
+def int_handler(signal, frame):
+    pickle.dump((n_addr, n_port),
+                open('client_last.conf', 'wb'))
+    sys.exit(0)
+
 def main():
     logging.basicConfig(filename='clientlog.log', level=logging.INFO)
     logging.info("Logging started " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
+
+    # n_addr = ''
+    # n_port = 0
+
+    
+
     try:
         con = rpyc.connect("localhost", port=2131)
         master = con.root
@@ -365,4 +389,15 @@ def main():
 
 
 if __name__ == "__main__":
+    
+    if os.path.isfile('client_last.conf'):
+        n_addr, n_port = pickle.load(
+            open('client_last.conf', 'rb'))
+    else:
+        print "Nameserver configuration:"
+        n_addr, n_port = get_ip_port_config('localhost', 2131)
+        print ""
+
+    signal.signal(signal.SIGINT, int_handler)
+
     main()
