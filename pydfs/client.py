@@ -1,23 +1,21 @@
+import logging
 import os
 import sys
-import logging
 import time
-from termcolor import colored
-from colorama import Fore, Back, init, Style
-
-import collections
-
+from colorama import Fore, init
 import rpyc
 
 FILENAME_LENGTH = 20
 DIRNAME_LENGTH = 20
 
-def check_name_length(name,length):
+
+def check_name_length(name, length):
     if len(name) > length:
         print "Name can not be more than " + str(length) + " characters."
         return False
     else:
         return True
+
 
 init(autoreset=True)
 
@@ -30,6 +28,7 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
 
+
 def send_to_storage(block_uuid, data, minions):
     try:
         print "sending: " + str(block_uuid) + str(minions)
@@ -40,7 +39,8 @@ def send_to_storage(block_uuid, data, minions):
         con = rpyc.connect(host, port=port)
         minion = con.root.Storage()
         minion.put(block_uuid, data, minions)
-        logging.info("Blocks written to storage " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
+        logging.info("Blocks written to storage " + str(block_uuid) + str(
+            time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
     except (RuntimeError, TypeError, NameError):
         message = RuntimeError.message or TypeError.message or NameError.message
         logging.error(
@@ -69,7 +69,8 @@ def delete_from_storage(block_uuid, minion):
     except(RuntimeError, TypeError, NameError):
         message = RuntimeError.message or TypeError.message or NameError.message
         logging.error(
-            message + " while deleting from storage " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
+            message + " while deleting from storage " + str(
+                time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
 
 
 def put(master, path, source, dest):
@@ -84,6 +85,7 @@ def put(master, path, source, dest):
                     block_uuid = b[0]
                     minions = [master.get_list_of_minions()[_] for _ in b[1]]
                     send_to_storage(block_uuid, data, minions)
+
         else:
             print "File already exists"
         logging.info(
@@ -129,7 +131,9 @@ def get(master, path, fname, mode):
         logging.info("successfully get from storage " + path + " " + fname)
     except (RuntimeError, TypeError, NameError):
         message = RuntimeError.message or TypeError.message or NameError.message
-        logging.error(message + " while getting from storage " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
+        logging.error(
+            message + " while getting from storage " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
+
 
 def delete_file(master, path, fname):
     try:
@@ -147,7 +151,8 @@ def delete_file(master, path, fname):
         master.del_file(path, fname)
     except (RuntimeError, TypeError, NameError):
         message = RuntimeError.message or TypeError.message or NameError.message
-        logging.error(message + " while deelting storage " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
+        logging.error(
+            message + " while deelting storage " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
 
 
 def delete(master, path, obj_name):
@@ -160,15 +165,15 @@ def delete(master, path, obj_name):
                 files = master.get_files_in_dir(path + obj_name)
                 if files:
                     for file in files:
-                        fpath, fname = file.rsplit('/',1)
+                        fpath, fname = file.rsplit('/', 1)
                         fpath = fpath + '/'
                         delete_file(master, fpath, fname)
                 master.del_dir(path, obj_name)
         logging.info("deleted object from storage " + path + " " + obj_name)
     except(RuntimeError, TypeError, NameError):
         message = RuntimeError.message or TypeError.message or NameError.message
-        logging.error(message + " while deleting from storage " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
-
+        logging.error(message + " while deleting from storage " + str(
+            time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
 
 
 def get_keyboard_input(cur_dir):
@@ -183,10 +188,12 @@ def get_keyboard_input(cur_dir):
     for part in parts:
         args.append(part.strip())
     return args
-    
+
+
 def check_free_diskspace(master, source):
     if os.path.isfile(source):
         return os.path.getsize(source) <= master.get_space_available()
+
 
 def print_free_diskspace(master, mode='-b'):
     if mode == '-mb':
@@ -203,18 +210,19 @@ def print_free_diskspace(master, mode='-b'):
         return
     print "You have " + available_space + " free space out of " + total_space + " total disk space."
 
+
 def check_dir(cur_dir, dirname):
     d_path = ''
     d_name = ''
-    if dirname.startswith('/'):        
+    if dirname.startswith('/'):
         d_path, d_name = dirname.rsplit('/', 1)
-        d_path = d_path + '/'       
+        d_path = d_path + '/'
     elif dirname.startswith('./'):
         dirname = cur_dir + dirname[2:]
         d_path, d_name = dirname.rsplit('/', 1)
-        d_path = d_path + '/'       
+        d_path = d_path + '/'
     elif dirname.startswith('../'):
-        a, b, c = cur_dir.rsplit('/', 2)        
+        a, b, c = cur_dir.rsplit('/', 2)
         dirname = a + dirname[2:]
         d_path, d_name = dirname.rsplit('/', 1)
         d_path = d_path + '/'
@@ -222,11 +230,12 @@ def check_dir(cur_dir, dirname):
         if '/' in dirname:
             dirname = cur_dir + dirname
             d_path, d_name = dirname.rsplit('/', 1)
-            d_path = d_path + '/'        
+            d_path = d_path + '/'
         else:
             d_path = cur_dir
             d_name = dirname
     return d_path, d_name
+
 
 def main():
     logging.basicConfig(filename='clientlog.log', level=logging.INFO)
@@ -256,13 +265,14 @@ def main():
             if len(args) > 1:
                 get(master, cur_dir, args[1], 'open')
                 logging.info(
-                    "Opening" + args[1] + " using cat @ " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
+                    "Opening" + args[1] + " using cat @ " + str(
+                        time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
             else:
                 print "Filename is not specified. Usage: cat <filename>"
         elif args[0] == 'put':
-            logging.info("Writing file " + args[1] if len(args) > 1 else " " + " @ " + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
+
             if len(args) > 1:
-                if len(args) == 3:                    
+                if len(args) == 3:
                     if check_name_length(args[2], FILENAME_LENGTH):
                         if not '/' in args[2]:
                             if os.path.isfile(args[1]):
@@ -279,6 +289,7 @@ def main():
                                 print "There is no such file"
                         else:
                             print "Wrong input. Filename can not contain '/'."
+
                 elif len(args) == 2:
                     if os.path.isfile(args[1]):
                         if check_free_diskspace(master, args[1]):
@@ -291,6 +302,8 @@ def main():
                         print "There is no such file"
                 else:
                     print "Too many arguments"
+                logging.info("Writing file " + args[1] + " @ " + str(
+                    time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
             else:
                 print "File is not specified. Usage: put <file> [new filename]"
         elif args[0] == 'ls':
@@ -306,7 +319,7 @@ def main():
             if len(args) > 1:
                 if check_name_length(args[1], DIRNAME_LENGTH):
                     if not '/' in args[1]:
-                        dirname = args[1]                
+                        dirname = args[1]
                         if not master.add_obj(cur_dir, dirname):
                             print "Directory already exists"
                     else:
@@ -314,7 +327,8 @@ def main():
             else:
                 print "Directory name is not specified. Usage: mkdir <dirname>"
         elif args[0] == 'cd':
-            logging.info("Changing directory " + args[1] if len(args) > 1 else '/' + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
+            logging.info("Changing directory " + args[1] if len(args) > 1 else '/' + str(
+                time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
             if len(args) > 1:
                 dirname = args[1]
                 if dirname == '..':
@@ -335,11 +349,14 @@ def main():
         elif args[0] == 'del':
             if len(args) > 1:
                 delete(master, cur_dir, args[1])
+                logging.info(
+                    "Deleting " + args[1] + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
             else:
                 print "Directory or file name is not specified. Usage: del <dirname>/<filename>"
         elif args[0] == 'space':
             logging.info(
-                "Getting space " + args[1] if len(args) > 1 else '-b' + str(time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
+                "Getting space " + args[1] if len(args) > 1 else '-b' + str(
+                    time.strftime("%d/%m/%Y") + ' ' + time.strftime("%H:%M:%S")))
 
             if len(args) > 1:
                 print_free_diskspace(master, args[1])

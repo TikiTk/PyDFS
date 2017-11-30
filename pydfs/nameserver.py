@@ -27,11 +27,6 @@ def set_conf():
 
     Nameserver.block_size = int(conf.get('nameserver', 'block_size'))
     Nameserver.replication_factor = int(conf.get('nameserver', 'replication_factor'))
-    # storage = conf.get('nameserver', 'storage').split(',')
-    # for m in storage:
-    #     id, host, port = m.split(":")
-    #     Nameserver.minions[id] = (host, port)
-
     if os.path.isfile('fs.img'):
         Nameserver.file_table, Nameserver.block_mapping, Nameserver.file_sizes, Nameserver.directory_tree = pickle.load(
             open('fs.img', 'rb'))
@@ -82,17 +77,17 @@ class Nameserver(rpyc.Service):
                     dir_list[obj] = 'file'
         else:
             sub_path = '/'
-            for d in dirs:                
+            for d in dirs:
                 if not self.dir_exists(sub_path, d):
                     return
-                sub_path = sub_path + d + '/'      
-            dir_content = reduce(operator.getitem, dirs, self.__class__.directory_tree)            
+                sub_path = sub_path + d + '/'
+            dir_content = reduce(operator.getitem, dirs, self.__class__.directory_tree)
             for obj, value in dir_content.iteritems():
                 if value != 'file':
                     dir_list[obj] = 'dir'
                 else:
                     dir_list[obj] = 'file'
-        return dir_list        
+        return dir_list
 
     def exposed_read(self, fname):
         self.check_connection_to_storageservers(self.minions)
@@ -113,11 +108,11 @@ class Nameserver(rpyc.Service):
 
     def exposed_add_obj(self, path, obj_name, obj_type='dir'):
         dirs = self.get_dirs_in_path(path)
-        
+
         if obj_type == 'file':
             obj_to_add = {obj_name: 'file'}
         elif obj_type == 'dir' and not self.dir_exists(path, obj_name):
-            obj_to_add = {obj_name: {'.':'self','..':'parent'}}
+            obj_to_add = {obj_name: {'.': 'self', '..': 'parent'}}
         else:
             return False
 
@@ -172,7 +167,7 @@ class Nameserver(rpyc.Service):
         files = {}
         for file in self.__class__.file_table:
             if file.startswith(path):
-                files.update({file:self.__class__.file_table[file]})
+                files.update({file: self.__class__.file_table[file]})
         return files
 
     def exposed_get_block_size(self):
@@ -180,8 +175,6 @@ class Nameserver(rpyc.Service):
 
     def exposed_get_storageservers(self):
         return self.__class__.minions
-
-
 
     def get_dirs_in_path(self, path):
         dirs = path.split('/')
